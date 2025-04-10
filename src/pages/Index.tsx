@@ -103,7 +103,7 @@ const Index = () => {
               <p className="text-muted-foreground mb-4">
                 Get customized compliance checklists based on your business type and sector.
               </p>
-              <Link to="/compliance" className="text-primary font-medium hover:underline flex items-center">
+              <Link to="/dashboard" className="text-primary font-medium hover:underline flex items-center">
                 Learn more <ArrowRight className="ml-1 h-4 w-4" />
               </Link>
             </motion.div>
@@ -131,7 +131,7 @@ const Index = () => {
               <p className="text-muted-foreground mb-4">
                 Track your progress with interactive checklists for legal and operational requirements.
               </p>
-              <Link to="/checklist" className="text-primary font-medium hover:underline flex items-center">
+              <Link to="/dashboard" className="text-primary font-medium hover:underline flex items-center">
                 View checklists <ArrowRight className="ml-1 h-4 w-4" />
               </Link>
             </motion.div>
@@ -173,7 +173,7 @@ const Index = () => {
               <p className="text-muted-foreground mb-4">
                 Calculate taxes and find applicable government grants for your startup.
               </p>
-              <Link to="/tax-calculator" className="text-primary font-medium hover:underline flex items-center">
+              <Link to="/dashboard" className="text-primary font-medium hover:underline flex items-center">
                 Calculate now <ArrowRight className="ml-1 h-4 w-4" />
               </Link>
             </motion.div>
@@ -204,12 +204,12 @@ const Index = () => {
             className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
           >
             {[
-              { name: "Technology", path: "/sectors/technology", color: "bg-blue-100" },
-              { name: "E-commerce", path: "/sectors/ecommerce", color: "bg-green-100" },
-              { name: "Food & Hospitality", path: "/sectors/food", color: "bg-orange-100" },
-              { name: "Healthcare", path: "/sectors/healthcare", color: "bg-red-100" },
-              { name: "Entertainment", path: "/sectors/entertainment", color: "bg-purple-100" },
-              { name: "Manufacturing", path: "/sectors/manufacturing", color: "bg-yellow-100" }
+              { name: "Technology", path: "/knowledge-base?sector=technology", color: "bg-blue-100" },
+              { name: "E-commerce", path: "/knowledge-base?sector=ecommerce", color: "bg-green-100" },
+              { name: "Food & Hospitality", path: "/knowledge-base?sector=food", color: "bg-orange-100" },
+              { name: "Healthcare", path: "/knowledge-base?sector=healthcare", color: "bg-red-100" },
+              { name: "Entertainment", path: "/knowledge-base?sector=entertainment", color: "bg-purple-100" },
+              { name: "Manufacturing", path: "/knowledge-base?sector=manufacturing", color: "bg-yellow-100" }
             ].map((sector, index) => (
               <motion.div key={index} variants={itemVariants}>
                 <Link to={sector.path} className="block group">
@@ -246,7 +246,7 @@ const Index = () => {
                 <Link to="/signup">Get Started Free</Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="border-white text-white hover:bg-white/10">
-                <Link to="/contact">Contact Support</Link>
+                <Link to="/login">Login</Link>
               </Button>
             </div>
           </motion.div>
