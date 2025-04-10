@@ -188,13 +188,15 @@ const KnowledgeUpload = () => {
         
         <TabsContent value="my-documents" className="space-y-4">
           <div className="flex items-center gap-2">
-            <Input
-              placeholder="Search documents..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="max-w-sm"
-              icon={<Search className="h-4 w-4" />}
-            />
+            <div className="relative max-w-sm w-full">
+              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search documents..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="pl-8"
+              />
+            </div>
           </div>
           
           {filteredDocuments.length === 0 ? (
