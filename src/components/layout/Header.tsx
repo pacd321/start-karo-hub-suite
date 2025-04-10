@@ -1,215 +1,130 @@
 
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import {
-  NavigationMenu,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  navigationMenuTriggerStyle,
-} from "@/components/ui/navigation-menu";
-import { cn } from "@/lib/utils";
-import { Menu, X } from "lucide-react";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuGroup, 
+  DropdownMenuItem, 
+  DropdownMenuLabel, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { Menu, X, User, LogOut, Settings, Layout } from "lucide-react";
+import { useAuth } from "@/lib/auth";
 
 const HeaderComponent = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const location = useLocation();
-  
-  const isActive = (path: string) => {
-    return location.pathname === path;
-  };
+  const [isOpen, setIsOpen] = useState(false);
+  const { isAuthenticated, user, logout } = useAuth();
+  const navigate = useNavigate();
 
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link to="/" className="flex items-center">
-            <span className="font-bold text-xl text-primary">StartKaro</span>
-          </Link>
+    <header className="bg-white border-b sticky top-0 z-30">
+      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+        {/* Logo */}
+        <Link to="/" className="flex items-center space-x-2">
+          <span className="font-bold text-2xl text-primary">Start<span className="text-gradient">Karo</span></span>
+        </Link>
 
-          {/* Desktop Navigation */}
-          <NavigationMenu className="hidden md:flex">
-            <NavigationMenuList>
-              <NavigationMenuItem>
-                <Link to="/">
-                  <NavigationMenuLink
-                    className={cn(
-                      navigationMenuTriggerStyle(),
-                      isActive("/") && "text-primary font-medium"
-                    )}
-                  >
-                    Home
-                  </NavigationMenuLink>
-                </Link>
-              </NavigationMenuItem>
-              <NavigationMenuItem>
-                <Link to="/dashboard">
-                  <NavigationMenuLink
-                    className={cn(
-                      navigationMenuTriggerStyle(),
-                      isActive("/dashboard") && "text-primary font-medium"
-                    )}
-                  >
-                    Dashboard
-                  </NavigationMenuLink>
-                </Link>
-              </NavigationMenuItem>
-              <NavigationMenuItem>
-                <Link to="/resources">
-                  <NavigationMenuLink
-                    className={cn(
-                      navigationMenuTriggerStyle(),
-                      isActive("/resources") && "text-primary font-medium"
-                    )}
-                  >
-                    Resources
-                  </NavigationMenuLink>
-                </Link>
-              </NavigationMenuItem>
-              <NavigationMenuItem>
-                <Link to="/knowledge-base">
-                  <NavigationMenuLink
-                    className={cn(
-                      navigationMenuTriggerStyle(),
-                      isActive("/knowledge-base") && "text-primary font-medium"
-                    )}
-                  >
-                    Knowledge Base
-                  </NavigationMenuLink>
-                </Link>
-              </NavigationMenuItem>
-              <NavigationMenuItem>
-                <Link to="/chatbot">
-                  <NavigationMenuLink
-                    className={cn(
-                      navigationMenuTriggerStyle(),
-                      isActive("/chatbot") && "text-primary font-medium"
-                    )}
-                  >
-                    AI Chatbot
-                  </NavigationMenuLink>
-                </Link>
-              </NavigationMenuItem>
-              <NavigationMenuItem>
-                <Link to="/how-it-works">
-                  <NavigationMenuLink
-                    className={cn(
-                      navigationMenuTriggerStyle(),
-                      isActive("/how-it-works") && "text-primary font-medium"
-                    )}
-                  >
-                    How It Works
-                  </NavigationMenuLink>
-                </Link>
-              </NavigationMenuItem>
-            </NavigationMenuList>
-          </NavigationMenu>
+        {/* Desktop Navigation */}
+        <nav className="hidden md:flex items-center space-x-6">
+          <Link to="/" className="text-sm font-medium hover:text-primary transition-colors">Home</Link>
+          <Link to="/how-it-works" className="text-sm font-medium hover:text-primary transition-colors">How It Works</Link>
+          {isAuthenticated ? (
+            <>
+              <Link to="/dashboard" className="text-sm font-medium hover:text-primary transition-colors">Dashboard</Link>
+              <Link to="/knowledge-base" className="text-sm font-medium hover:text-primary transition-colors">Knowledge Base</Link>
+              <Link to="/resources" className="text-sm font-medium hover:text-primary transition-colors">Resources</Link>
+              <Link to="/chatbot" className="text-sm font-medium hover:text-primary transition-colors">AI Assistant</Link>
+            </>
+          ) : null}
+        </nav>
 
-          {/* Login/Signup Buttons Desktop */}
-          <div className="hidden md:flex items-center space-x-4">
-            <Button asChild variant="outline">
-              <Link to="/login">Login</Link>
-            </Button>
-            <Button asChild>
-              <Link to="/signup">Sign Up</Link>
-            </Button>
-          </div>
+        {/* Auth Buttons or User Menu */}
+        <div className="hidden md:flex items-center space-x-4">
+          {isAuthenticated ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <User className="h-4 w-4" />
+                  <span>{user?.name || "User"}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                  <DropdownMenuItem onClick={() => navigate("/dashboard")}>
+                    <Layout className="mr-2 h-4 w-4" />
+                    <span>Dashboard</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/knowledge-base")}>
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Knowledge Base</span>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <>
+              <Button variant="outline" asChild>
+                <Link to="/login">Login</Link>
+              </Button>
+              <Button asChild>
+                <Link to="/signup">Sign up</Link>
+              </Button>
+            </>
+          )}
+        </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            onClick={toggleMenu}
-            className="md:hidden p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary"
-            aria-expanded={isMenuOpen}
-          >
-            <span className="sr-only">{isMenuOpen ? "Close menu" : "Open menu"}</span>
-            {isMenuOpen ? (
-              <X className="h-6 w-6" aria-hidden="true" />
-            ) : (
-              <Menu className="h-6 w-6" aria-hidden="true" />
-            )}
-          </button>
+        {/* Mobile Menu Button */}
+        <div className="md:hidden">
+          <Button variant="ghost" size="sm" onClick={() => setIsOpen(!isOpen)}>
+            {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </Button>
         </div>
       </div>
 
       {/* Mobile Menu */}
-      {isMenuOpen && (
-        <div className="md:hidden bg-white border-t border-gray-200">
-          <div className="container mx-auto px-4 py-4 space-y-2">
-            <Link 
-              to="/" 
-              className={cn(
-                "block px-4 py-2 rounded-md",
-                isActive("/") ? "bg-primary/10 text-primary font-medium" : "hover:bg-gray-50"
-              )}
-              onClick={toggleMenu}
-            >
-              Home
-            </Link>
-            <Link 
-              to="/dashboard" 
-              className={cn(
-                "block px-4 py-2 rounded-md",
-                isActive("/dashboard") ? "bg-primary/10 text-primary font-medium" : "hover:bg-gray-50"
-              )}
-              onClick={toggleMenu}
-            >
-              Dashboard
-            </Link>
-            <Link 
-              to="/resources" 
-              className={cn(
-                "block px-4 py-2 rounded-md",
-                isActive("/resources") ? "bg-primary/10 text-primary font-medium" : "hover:bg-gray-50"
-              )}
-              onClick={toggleMenu}
-            >
-              Resources
-            </Link>
-            <Link 
-              to="/knowledge-base" 
-              className={cn(
-                "block px-4 py-2 rounded-md",
-                isActive("/knowledge-base") ? "bg-primary/10 text-primary font-medium" : "hover:bg-gray-50"
-              )}
-              onClick={toggleMenu}
-            >
-              Knowledge Base
-            </Link>
-            <Link 
-              to="/chatbot" 
-              className={cn(
-                "block px-4 py-2 rounded-md",
-                isActive("/chatbot") ? "bg-primary/10 text-primary font-medium" : "hover:bg-gray-50"
-              )}
-              onClick={toggleMenu}
-            >
-              AI Chatbot
-            </Link>
-            <Link 
-              to="/how-it-works" 
-              className={cn(
-                "block px-4 py-2 rounded-md",
-                isActive("/how-it-works") ? "bg-primary/10 text-primary font-medium" : "hover:bg-gray-50"
-              )}
-              onClick={toggleMenu}
-            >
-              How It Works
-            </Link>
+      {isOpen && (
+        <div className="md:hidden border-t">
+          <div className="container mx-auto px-4 py-3 flex flex-col space-y-3">
+            <Link to="/" className="text-sm font-medium hover:text-primary transition-colors py-1" onClick={() => setIsOpen(false)}>Home</Link>
+            <Link to="/how-it-works" className="text-sm font-medium hover:text-primary transition-colors py-1" onClick={() => setIsOpen(false)}>How It Works</Link>
             
-            <div className="pt-4 space-y-2">
-              <Button asChild variant="outline" className="w-full">
-                <Link to="/login" onClick={toggleMenu}>Login</Link>
-              </Button>
-              <Button asChild className="w-full">
-                <Link to="/signup" onClick={toggleMenu}>Sign Up</Link>
-              </Button>
-            </div>
+            {isAuthenticated ? (
+              <>
+                <Link to="/dashboard" className="text-sm font-medium hover:text-primary transition-colors py-1" onClick={() => setIsOpen(false)}>Dashboard</Link>
+                <Link to="/knowledge-base" className="text-sm font-medium hover:text-primary transition-colors py-1" onClick={() => setIsOpen(false)}>Knowledge Base</Link>
+                <Link to="/resources" className="text-sm font-medium hover:text-primary transition-colors py-1" onClick={() => setIsOpen(false)}>Resources</Link>
+                <Link to="/chatbot" className="text-sm font-medium hover:text-primary transition-colors py-1" onClick={() => setIsOpen(false)}>AI Assistant</Link>
+                <hr className="my-2" />
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium">{user?.name || "User"}</span>
+                  <Button variant="outline" size="sm" onClick={handleLogout}>Logout</Button>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col space-y-2 pt-2">
+                <Button variant="outline" asChild>
+                  <Link to="/login" onClick={() => setIsOpen(false)}>Login</Link>
+                </Button>
+                <Button asChild>
+                  <Link to="/signup" onClick={() => setIsOpen(false)}>Sign up</Link>
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       )}

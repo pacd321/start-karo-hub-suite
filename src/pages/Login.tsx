@@ -12,6 +12,7 @@ import { toast } from "@/hooks/use-toast";
 import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import HeaderComponent from "@/components/layout/Header";
 import FooterComponent from "@/components/layout/Footer";
+import { useAuth } from "@/lib/auth";
 
 interface LocationState {
   tab?: string;
@@ -22,6 +23,7 @@ const Login = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<string>("login");
   const [showPassword, setShowPassword] = useState<boolean>(false);
+  const { login, signup, isAuthenticated } = useAuth();
   
   const [loginForm, setLoginForm] = useState({
     email: "",
@@ -41,9 +43,14 @@ const Login = () => {
     if (state && state.tab) {
       setActiveTab(state.tab);
     }
-  }, [location]);
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+    // Redirect if already authenticated
+    if (isAuthenticated) {
+      navigate("/dashboard");
+    }
+  }, [location, isAuthenticated, navigate]);
+
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Simple validation
@@ -56,24 +63,10 @@ const Login = () => {
       return;
     }
     
-    // Demo login - in a real app, this would call an authentication API
-    if (loginForm.email === "demo@example.com" && loginForm.password === "password") {
-      toast({
-        title: "Login Successful",
-        description: "Welcome back to StartKaro!"
-      });
-      
-      navigate("/dashboard");
-    } else {
-      toast({
-        title: "Login Failed",
-        description: "Invalid email or password.",
-        variant: "destructive"
-      });
-    }
+    await login(loginForm.email, loginForm.password);
   };
 
-  const handleSignupSubmit = (e: React.FormEvent) => {
+  const handleSignupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Simple validation
@@ -95,13 +88,7 @@ const Login = () => {
       return;
     }
     
-    // Demo signup - in a real app, this would call an API to create the account
-    toast({
-      title: "Account Created",
-      description: "Welcome to StartKaro! Your account has been created successfully."
-    });
-    
-    navigate("/dashboard");
+    await signup(signupForm.name, signupForm.email, signupForm.password);
   };
   
   return (
@@ -187,8 +174,8 @@ const Login = () => {
                   <div className="mt-4 text-center text-sm">
                     <p className="text-muted-foreground">
                       For demo purposes, use: <br />
-                      Email: demo@example.com <br />
-                      Password: password
+                      User: demo@example.com / password<br />
+                      Admin: admin@example.com / admin123
                     </p>
                   </div>
                 </CardFooter>

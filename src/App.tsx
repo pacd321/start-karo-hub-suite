@@ -6,6 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { MotionConfig } from "framer-motion";
+import { AuthProvider } from "./lib/auth";
+import ProtectedRoute from "./components/layout/ProtectedRoute";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
@@ -15,6 +17,7 @@ import HowItWorks from "./pages/HowItWorks";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Resources from "./pages/Resources";
+import Onboarding from "./pages/Onboarding";
 
 const queryClient = new QueryClient();
 
@@ -22,24 +25,70 @@ const App = () => (
   <ThemeProvider defaultTheme="light" attribute="class">
     <MotionConfig reducedMotion="user">
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <BrowserRouter>
-            <Toaster />
-            <Sonner />
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/knowledge-base" element={<KnowledgeBase />} />
-              <Route path="/chatbot" element={<Chatbot />} />
-              <Route path="/how-it-works" element={<HowItWorks />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/resources" element={<Resources />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/" element={<Index />} />
+                <Route path="/how-it-works" element={<HowItWorks />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                
+                {/* Protected Routes */}
+                <Route 
+                  path="/onboarding" 
+                  element={
+                    <ProtectedRoute requireOnboarding={false}>
+                      <Onboarding />
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                <Route 
+                  path="/dashboard" 
+                  element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                <Route 
+                  path="/knowledge-base" 
+                  element={
+                    <ProtectedRoute>
+                      <KnowledgeBase />
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                <Route 
+                  path="/chatbot" 
+                  element={
+                    <ProtectedRoute>
+                      <Chatbot />
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                <Route 
+                  path="/resources" 
+                  element={
+                    <ProtectedRoute>
+                      <Resources />
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                {/* 404 Route */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </TooltipProvider>
+          </AuthProvider>
+        </BrowserRouter>
       </QueryClientProvider>
     </MotionConfig>
   </ThemeProvider>

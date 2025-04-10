@@ -1,127 +1,125 @@
 
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, CheckCircle, Download, FileText } from "lucide-react";
+import React, { useState } from "react";
 import { toast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { generateComplianceReport } from "@/utils/downloadUtils";
+
+interface SectorComplianceMap {
+  [key: string]: string[];
+}
+
+// Pre-defined compliance requirements by sector
+const sectorCompliance: SectorComplianceMap = {
+  "Technology": ["GST Registration", "Shop & Establishment Act", "Professional Tax", "MSME Registration", "Trademark Registration", "Patents (if applicable)", "Data Protection Compliance"],
+  "Food": ["FSSAI License", "GST Registration", "Health Trade License", "Fire Safety License", "Weights & Measures License", "Eating House License", "MSME Registration"],
+  "E-commerce": ["GST Registration", "Shop & Establishment Act", "Professional Tax", "MSME Registration", "Consumer Protection (E-commerce) Rules", "FDI Compliance", "Payment Aggregator Guidelines"],
+  "Healthcare": ["Clinical Establishment License", "GST Registration", "Biomedical Waste Management", "Drugs License (if applicable)", "PNDT Registration (if applicable)", "Fire Safety License", "Pharmacy Council Registration"],
+  "Entertainment": ["GST Registration", "Shop & Establishment Act", "Local Municipal Permissions", "Copyright Registration", "Censor Board Certification (for films)", "Performance License", "Event Permissions"],
+  "Manufacturing": ["Factory License", "GST Registration", "Pollution Control Board Consent", "Fire Safety License", "MSME Registration", "Industrial Entrepreneur Memorandum", "Electricity and Water Connection Approvals"],
+};
+
+// Pre-defined business type compliance requirements
+const businessTypeCompliance: SectorComplianceMap = {
+  "Sole Proprietorship": ["PAN Card", "GST Registration (if applicable)", "Shop & Establishment Act", "Business License", "Municipal Trade License"],
+  "Partnership": ["Partnership Deed Registration", "PAN Card", "GST Registration", "Shop & Establishment Act", "Professional Tax"],
+  "LLP": ["LLP Registration", "PAN & TAN", "GST Registration", "Shop & Establishment Act", "Annual Filing (Form 8 & 11)"],
+  "Private Limited Company": ["Certificate of Incorporation", "PAN & TAN", "GST Registration", "MSME Registration", "ESI & PF Registration", "Annual Filing (MGT-7, AOC-4)"],
+  "Public Limited Company": ["Certificate of Incorporation", "PAN & TAN", "GST Registration", "SEBI Compliance", "Annual Filing (MGT-7, AOC-4)", "Stock Exchange Compliances"],
+  "One Person Company": ["Certificate of Incorporation", "PAN & TAN", "GST Registration", "MSME Registration", "Annual Filing (MGT-7, AOC-4)"]
+};
 
 interface ComplianceReportProps {
   sectorType: string;
   businessType: string;
-  userProfile: {
-    companyName: string;
-    incorporationDate: string;
-    registrationState: string;
-    annualTurnover: string;
-    employeeCount: string;
-    sector: string;
-    businessType: string;
-  };
+  userProfile: any;
 }
 
-const ComplianceReport = ({ sectorType, businessType, userProfile }: ComplianceReportProps) => {
-  const [isGenerating, setIsGenerating] = useState(false);
+const ComplianceReport: React.FC<ComplianceReportProps> = ({ 
+  sectorType = "Technology",
+  businessType = "Private Limited Company",
+  userProfile = {}
+}) => {
+  const [downloading, setDownloading] = useState(false);
 
-  const complianceItems = [
-    { 
-      name: "GST Registration", 
-      status: "Completed", 
-      dueDate: "Not Applicable",
-      details: "Registration Number: 29AADCB2230M1ZT"
-    },
-    { 
-      name: "Income Tax Returns", 
-      status: "Pending", 
-      dueDate: "October 31, 2024",
-      details: "Annual filing for FY 2023-24"
-    },
-    { 
-      name: "Annual ROC Filings", 
-      status: "Pending", 
-      dueDate: "November 30, 2024",
-      details: "Form AOC-4 and MGT-7 for FY 2023-24"
-    },
-    { 
-      name: "TDS Filing", 
-      status: "Completed", 
-      dueDate: "July 31, 2024",
-      details: "Q1 FY 2024-25 TDS Return"
-    },
-    { 
-      name: "ESI Registration", 
-      status: "Not Required", 
-      dueDate: "Not Applicable",
-      details: "Not required based on employee count"
-    },
-  ];
-
+  // Get the appropriate compliance requirements
+  const sector = sectorType || "Technology";
+  const businessEntity = businessType || "Private Limited Company";
+  
+  const sectorRequirements = sectorCompliance[sector] || sectorCompliance["Technology"];
+  const businessRequirements = businessTypeCompliance[businessEntity] || businessTypeCompliance["Private Limited Company"];
+  
+  // All combined compliance requirements
+  const allRequirements = [...businessRequirements, ...sectorRequirements];
+  
+  // Handle report download
   const handleDownload = () => {
-    setIsGenerating(true);
+    setDownloading(true);
     
-    // Simulate report generation
-    setTimeout(() => {
-      setIsGenerating(false);
-      
+    // Use the download utility
+    if (generateComplianceReport(userProfile)) {
       toast({
         title: "Report Downloaded",
         description: "Your compliance report has been downloaded successfully.",
       });
-    }, 1500);
+    } else {
+      toast({
+        title: "Download Error",
+        description: "There was an error downloading the report.",
+        variant: "destructive",
+      });
+    }
+    
+    setDownloading(false);
   };
-
+  
   return (
     <Card>
       <CardHeader>
         <CardTitle>Compliance Report</CardTitle>
         <CardDescription>
-          {userProfile.companyName} ({userProfile.sector} - {userProfile.businessType})
+          Required compliances for your {businessEntity} in the {sector} sector
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="rounded-md bg-muted/50 p-3">
-          <div className="flex items-center gap-2 text-sm">
-            <AlertTriangle className="h-4 w-4 text-amber-500" />
-            <span className="font-medium">Compliance score: 75%</span>
-            <Badge variant="outline" className="ml-auto">4/5 items complete</Badge>
+      <CardContent>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium">Required Registrations & Licenses</h4>
+            <ul className="text-sm space-y-1 pl-5 list-disc">
+              {allRequirements.slice(0, 8).map((item, i) => (
+                <li key={i}>{item}</li>
+              ))}
+              {allRequirements.length > 8 && (
+                <li className="text-muted-foreground">+{allRequirements.length - 8} more</li>
+              )}
+            </ul>
           </div>
-        </div>
-        
-        <div className="space-y-3 mt-4">
-          {complianceItems.map((item, index) => (
-            <div key={index} className="flex items-start border-b pb-2">
-              <div className="mt-0.5 mr-3">
-                {item.status === "Completed" ? (
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                ) : item.status === "Pending" ? (
-                  <AlertTriangle className="h-5 w-5 text-amber-500" />
-                ) : (
-                  <Badge variant="outline" className="h-5 px-1 text-xs">N/A</Badge>
-                )}
-              </div>
-              <div className="flex-1">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="font-medium">{item.name}</p>
-                    <p className="text-sm text-muted-foreground">{item.details}</p>
-                  </div>
-                  <div className="text-right text-sm">
-                    <div>Due: {item.dueDate}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
+          
+          <div className="grid grid-cols-2 gap-2 text-sm pt-2 border-t">
+            <div className="text-muted-foreground">Business Type:</div>
+            <div className="font-medium">{businessEntity}</div>
+            
+            <div className="text-muted-foreground">Sector:</div>
+            <div className="font-medium">{sector}</div>
+            
+            <div className="text-muted-foreground">Location:</div>
+            <div className="font-medium">{userProfile.registrationState || "Karnataka"}</div>
+            
+            <div className="text-muted-foreground">Turnover Range:</div>
+            <div className="font-medium">{userProfile.annualTurnover || "Under ₹40 lakhs"}</div>
+            
+            <div className="text-muted-foreground">Incorporation Date:</div>
+            <div className="font-medium">{userProfile.incorporationDate || "2023-06-15"}</div>
+          </div>
         </div>
       </CardContent>
       <CardFooter>
         <Button 
-          onClick={handleDownload} 
-          className="w-full" 
-          disabled={isGenerating}
+          className="w-full"
+          onClick={handleDownload}
+          disabled={downloading}
         >
-          <FileText className="h-4 w-4 mr-2" />
-          {isGenerating ? "Generating..." : "Download Full Report"}
+          {downloading ? "Downloading..." : "Download Detailed Report"}
         </Button>
       </CardFooter>
     </Card>
