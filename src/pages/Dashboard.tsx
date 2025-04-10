@@ -6,8 +6,10 @@ import { Progress } from "@/components/ui/progress";
 import { ArrowUpRight, BarChart3, Bell, CheckCircle2, CircleDot, FileBarChart2, Users } from "lucide-react";
 import BusinessChecklist from "@/components/dashboard/BusinessChecklist";
 import ComplianceReport from "@/components/dashboard/ComplianceReport";
+import SectorDocuments from "@/components/knowledge-base/SectorDocuments";
 import HeaderComponent from "@/components/layout/Header";
 import FooterComponent from "@/components/layout/Footer";
+import { useAuth } from "@/lib/auth";
 
 interface DashboardDatum {
   date: string;
@@ -37,7 +39,11 @@ const dashboardData: {
 
 const Dashboard = () => {
   const [progressValue, setProgressValue] = useState(30);
-  const userProfile = {
+  const { user } = useAuth();
+  
+  // Get user profile data from local storage or use defaults
+  const storedProfile = localStorage.getItem("userProfile");
+  const userProfile = storedProfile ? JSON.parse(storedProfile) : {
     companyName: "TechVentures Pvt Ltd",
     incorporationDate: "2023-06-15",
     registrationState: "Karnataka",
@@ -58,7 +64,7 @@ const Dashboard = () => {
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">Monitor your startup's compliance status and progress</p>
+          <p className="text-muted-foreground">Welcome back, {user?.name || "User"}</p>
         </div>
 
         {/* Progress Overview */}
@@ -130,8 +136,14 @@ const Dashboard = () => {
 
         {/* Main Dashboard Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-6">
             <BusinessChecklist onProgressChange={handleProgressChange} />
+            
+            <SectorDocuments 
+              sector={userProfile.sector}
+              businessType={userProfile.businessType}
+              userProfile={userProfile}
+            />
           </div>
           
           <div className="space-y-6">

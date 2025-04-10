@@ -32,6 +32,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/dashboard" replace />;
   }
 
+  // Admin users bypass onboarding requirement
   if (requireOnboarding && !isOnboarded && !isAdmin) {
     return <Navigate to="/onboarding" replace />;
   }

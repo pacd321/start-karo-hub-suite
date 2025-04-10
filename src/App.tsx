@@ -22,11 +22,11 @@ import Onboarding from "./pages/Onboarding";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <ThemeProvider defaultTheme="light" attribute="class">
-    <MotionConfig reducedMotion="user">
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <AuthProvider>
+  <QueryClientProvider client={queryClient}>
+    <BrowserRouter>
+      <AuthProvider>
+        <ThemeProvider defaultTheme="light" attribute="class">
+          <MotionConfig reducedMotion="user">
             <TooltipProvider>
               <Toaster />
               <Sonner />
@@ -87,11 +87,11 @@ const App = () => (
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </TooltipProvider>
-          </AuthProvider>
-        </BrowserRouter>
-      </QueryClientProvider>
-    </MotionConfig>
-  </ThemeProvider>
+          </MotionConfig>
+        </ThemeProvider>
+      </AuthProvider>
+    </BrowserRouter>
+  </QueryClientProvider>
 );
 
 export default App;
