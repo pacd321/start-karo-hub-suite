@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import {
   Accordion,
@@ -295,7 +294,6 @@ const SectorKnowledgeBase = () => {
           />
         </TabsContent>
         
-        {/* Similar structure for other sectors - abbreviated for brevity */}
         <TabsContent value="manufacturing" className="space-y-6">
           <SectorInformation
             name="Manufacturing"
@@ -322,6 +320,23 @@ const SectorKnowledgeBase = () => {
               "Industrial Entrepreneur Memorandum",
               "Fire Safety License",
               "Electricity and Water Connection Approvals"
+            ]}
+            resources={[
+              {
+                title: "Manufacturing Industry Report 2024",
+                type: "report",
+                description: "Analysis of the Indian manufacturing sector"
+              },
+              {
+                title: "Factory Compliance Guide",
+                type: "guide",
+                description: "Regulatory requirements for manufacturing facilities"
+              },
+              {
+                title: "Sustainable Manufacturing Framework",
+                type: "whitepaper",
+                description: "Environmental compliance for manufacturing in India"
+              }
             ]}
           />
         </TabsContent>
