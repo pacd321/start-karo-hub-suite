@@ -5,6 +5,37 @@
   animation: gradient-shift 15s ease infinite;
 }
 
+.animated-bg-gradient-soft {
+  background: linear-gradient(-45deg, rgba(126, 105, 171, 0.8), rgba(110, 89, 165, 0.8), rgba(155, 135, 245, 0.8), rgba(139, 92, 246, 0.8));
+  background-size: 400% 400%;
+  animation: gradient-shift 15s ease infinite;
+}
+
+.card-gradient {
+  background: linear-gradient(135deg, #ffffff, #f5f5f5);
+}
+
+.card-gradient-primary {
+  background: linear-gradient(135deg, #f9f8ff, #e9e6ff);
+}
+
+.text-gradient {
+  background: linear-gradient(90deg, #7e69ab, #9b87f5);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+
+.button-gradient {
+  background: linear-gradient(90deg, #7e69ab, #8B5CF6);
+  transition: all 0.3s ease;
+}
+
+.button-gradient:hover {
+  background: linear-gradient(90deg, #6E59A5, #7e69ab);
+}
+
 @keyframes gradient-shift {
   0% {
     background-position: 0% 50%;
@@ -15,4 +46,24 @@
   100% {
     background-position: 0% 50%;
   }
+}
+
+.hover-lift {
+  transition: transform 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-5px);
+}
+
+.shadow-soft {
+  box-shadow: 0 10px 25px -5px rgba(124, 104, 171, 0.1), 0 10px 10px -5px rgba(124, 104, 171, 0.04);
+}
+
+.glow {
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
+}
+
+.glow:hover {
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
 }

@@ -41,8 +41,8 @@ const FooterComponent = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/pricing" className="text-muted-foreground hover:text-primary transition-colors">
-                  Pricing
+                <Link to="/resources" className="text-muted-foreground hover:text-primary transition-colors">
+                  Resources
                 </Link>
               </li>
               <li>
@@ -73,22 +73,22 @@ const FooterComponent = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/tax-calculator" className="text-muted-foreground hover:text-primary transition-colors">
+                <Link to="/resources?tab=tax-calculator" className="text-muted-foreground hover:text-primary transition-colors">
                   Tax Calculator
                 </Link>
               </li>
               <li>
-                <Link to="/compliance" className="text-muted-foreground hover:text-primary transition-colors">
+                <Link to="/resources?tab=compliance-guide" className="text-muted-foreground hover:text-primary transition-colors">
                   Compliance Guide
                 </Link>
               </li>
               <li>
-                <Link to="/sectors/technology" className="text-muted-foreground hover:text-primary transition-colors">
+                <Link to="/knowledge-base?sector=technology" className="text-muted-foreground hover:text-primary transition-colors">
                   Industry Sectors
                 </Link>
               </li>
               <li>
-                <Link to="/blog" className="text-muted-foreground hover:text-primary transition-colors">
+                <Link to="/resources?tab=blog" className="text-muted-foreground hover:text-primary transition-colors">
                   Startup Blog
                 </Link>
               </li>

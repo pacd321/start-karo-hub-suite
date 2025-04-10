@@ -61,6 +61,18 @@ const HeaderComponent = () => {
                 </Link>
               </NavigationMenuItem>
               <NavigationMenuItem>
+                <Link to="/resources">
+                  <NavigationMenuLink
+                    className={cn(
+                      navigationMenuTriggerStyle(),
+                      isActive("/resources") && "text-primary font-medium"
+                    )}
+                  >
+                    Resources
+                  </NavigationMenuLink>
+                </Link>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
                 <Link to="/knowledge-base">
                   <NavigationMenuLink
                     className={cn(
@@ -148,6 +160,16 @@ const HeaderComponent = () => {
               onClick={toggleMenu}
             >
               Dashboard
+            </Link>
+            <Link 
+              to="/resources" 
+              className={cn(
+                "block px-4 py-2 rounded-md",
+                isActive("/resources") ? "bg-primary/10 text-primary font-medium" : "hover:bg-gray-50"
+              )}
+              onClick={toggleMenu}
+            >
+              Resources
             </Link>
             <Link 
               to="/knowledge-base" 

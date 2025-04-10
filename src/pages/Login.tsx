@@ -1,234 +1,292 @@
 
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Mail, Lock, User } from "lucide-react";
-import { toast } from "sonner";
-import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
+import { toast } from "@/hooks/use-toast";
+import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
+import HeaderComponent from "@/components/layout/Header";
 import FooterComponent from "@/components/layout/Footer";
 
+interface LocationState {
+  tab?: string;
+}
+
 const Login = () => {
-  const [isLoading, setIsLoading] = useState(false);
+  const location = useLocation();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<string>("login");
+  const [showPassword, setShowPassword] = useState<boolean>(false);
   
-  // Login form state
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
+  const [loginForm, setLoginForm] = useState({
+    email: "",
+    password: "",
+    remember: false
+  });
   
-  // Signup form state
-  const [signupName, setSignupName] = useState("");
-  const [signupEmail, setSignupEmail] = useState("");
-  const [signupPassword, setSignupPassword] = useState("");
-  const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
+  const [signupForm, setSignupForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: ""
+  });
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    
-    // Simulate login process
-    setTimeout(() => {
-      setIsLoading(false);
-      toast.success("Login successful! Redirecting to dashboard...");
-      
-      // Redirect to dashboard
-      setTimeout(() => navigate("/dashboard"), 1000);
-    }, 1500);
-  };
+  useEffect(() => {
+    const state = location.state as LocationState;
+    if (state && state.tab) {
+      setActiveTab(state.tab);
+    }
+  }, [location]);
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     
-    // Password validation
-    if (signupPassword !== signupConfirmPassword) {
-      setIsLoading(false);
-      toast.error("Passwords don't match");
+    // Simple validation
+    if (!loginForm.email || !loginForm.password) {
+      toast({
+        title: "Login Failed",
+        description: "Please fill all required fields.",
+        variant: "destructive"
+      });
       return;
     }
     
-    // Simulate signup process
-    setTimeout(() => {
-      setIsLoading(false);
-      toast.success("Account created successfully! Please log in.");
+    // Demo login - in a real app, this would call an authentication API
+    if (loginForm.email === "demo@example.com" && loginForm.password === "password") {
+      toast({
+        title: "Login Successful",
+        description: "Welcome back to StartKaro!"
+      });
       
-      // Reset form and switch to login tab
-      setSignupName("");
-      setSignupEmail("");
-      setSignupPassword("");
-      setSignupConfirmPassword("");
-      
-      const loginTab = document.getElementById("login");
-      if (loginTab) {
-        (loginTab as HTMLButtonElement).click();
-      }
-    }, 1500);
+      navigate("/dashboard");
+    } else {
+      toast({
+        title: "Login Failed",
+        description: "Invalid email or password.",
+        variant: "destructive"
+      });
+    }
   };
 
+  const handleSignupSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Simple validation
+    if (!signupForm.name || !signupForm.email || !signupForm.password) {
+      toast({
+        title: "Signup Failed",
+        description: "Please fill all required fields.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (signupForm.password !== signupForm.confirmPassword) {
+      toast({
+        title: "Signup Failed",
+        description: "Passwords do not match.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Demo signup - in a real app, this would call an API to create the account
+    toast({
+      title: "Account Created",
+      description: "Welcome to StartKaro! Your account has been created successfully."
+    });
+    
+    navigate("/dashboard");
+  };
+  
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-50 to-gray-100">
-      <div className="container mx-auto px-4 py-8">
-        <Link 
-          to="/" 
-          className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-8"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Home
-        </Link>
-        
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="max-w-md mx-auto"
-        >
-          <Card className="shadow-lg border-0">
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl">Welcome to StartKaro</CardTitle>
-              <CardDescription>
-                Your one-stop solution for startup compliance in India
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="login" className="w-full">
-                <TabsList className="grid grid-cols-2 mb-6">
-                  <TabsTrigger value="login" id="login">Login</TabsTrigger>
-                  <TabsTrigger value="signup">Sign Up</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="login">
-                  <form onSubmit={handleLogin}>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
-                        <div className="relative">
-                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            id="email"
-                            type="email"
-                            placeholder="you@example.com"
-                            value={loginEmail}
-                            onChange={(e) => setLoginEmail(e.target.value)}
-                            required
-                            className="pl-10"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <Label htmlFor="password">Password</Label>
-                          <Link to="/forgot-password" className="text-xs text-primary hover:underline">
-                            Forgot password?
-                          </Link>
-                        </div>
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            id="password"
-                            type="password"
-                            placeholder="••••••••"
-                            value={loginPassword}
-                            onChange={(e) => setLoginPassword(e.target.value)}
-                            required
-                            className="pl-10"
-                          />
-                        </div>
-                      </div>
-                      <Button type="submit" className="w-full" disabled={isLoading}>
-                        {isLoading ? "Logging in..." : "Log In"}
-                      </Button>
-                    </div>
-                  </form>
-                </TabsContent>
-                
-                <TabsContent value="signup">
-                  <form onSubmit={handleSignup}>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="name">Full Name</Label>
-                        <div className="relative">
-                          <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            id="name"
-                            placeholder="John Doe"
-                            value={signupName}
-                            onChange={(e) => setSignupName(e.target.value)}
-                            required
-                            className="pl-10"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="signup-email">Email</Label>
-                        <div className="relative">
-                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            id="signup-email"
-                            type="email"
-                            placeholder="you@example.com"
-                            value={signupEmail}
-                            onChange={(e) => setSignupEmail(e.target.value)}
-                            required
-                            className="pl-10"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="signup-password">Password</Label>
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            id="signup-password"
-                            type="password"
-                            placeholder="••••••••"
-                            value={signupPassword}
-                            onChange={(e) => setSignupPassword(e.target.value)}
-                            required
-                            className="pl-10"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="confirm-password">Confirm Password</Label>
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            id="confirm-password"
-                            type="password"
-                            placeholder="••••••••"
-                            value={signupConfirmPassword}
-                            onChange={(e) => setSignupConfirmPassword(e.target.value)}
-                            required
-                            className="pl-10"
-                          />
-                        </div>
-                      </div>
-                      <Button type="submit" className="w-full" disabled={isLoading}>
-                        {isLoading ? "Creating account..." : "Create Account"}
-                      </Button>
-                    </div>
-                  </form>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-            <CardFooter className="flex flex-col space-y-4">
-              <div className="text-center text-sm text-muted-foreground">
-                By continuing, you agree to StartKaro's
-                <Link to="/terms" className="underline ml-1 hover:text-primary">Terms of Service</Link>
-                <span className="mx-1">and</span>
-                <Link to="/privacy" className="underline hover:text-primary">Privacy Policy</Link>.
-              </div>
-            </CardFooter>
-          </Card>
-        </motion.div>
-      </div>
+    <div className="flex flex-col min-h-screen">
+      <HeaderComponent />
       
-      <div className="mt-auto">
-        <FooterComponent />
-      </div>
+      <main className="flex-1 container max-w-md mx-auto px-4 py-16">
+        <Card className="border-0 shadow-lg">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="login">Login</TabsTrigger>
+              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="login">
+              <form onSubmit={handleLoginSubmit}>
+                <CardHeader>
+                  <CardTitle>Welcome back</CardTitle>
+                  <CardDescription>
+                    Login to access your startup dashboard
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <Label htmlFor="email">Email</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="enter your email"
+                          className="pl-10"
+                          value={loginForm.email}
+                          onChange={(e) => setLoginForm({...loginForm, email: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Password</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="password"
+                          type={showPassword ? "text" : "password"}
+                          placeholder="••••••••"
+                          className="pl-10"
+                          value={loginForm.password}
+                          onChange={(e) => setLoginForm({...loginForm, password: e.target.value})}
+                        />
+                        <button
+                          type="button"
+                          className="absolute right-3 top-3 text-muted-foreground"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="remember" 
+                        checked={loginForm.remember}
+                        onCheckedChange={(checked) => 
+                          setLoginForm({...loginForm, remember: checked as boolean})
+                        }
+                      />
+                      <Label htmlFor="remember" className="text-sm">Remember me</Label>
+                    </div>
+                    <Button variant="link" className="p-0 h-auto text-sm" type="button">
+                      Forgot password?
+                    </Button>
+                  </div>
+                </CardContent>
+                <CardFooter className="flex flex-col">
+                  <Button type="submit" className="w-full">Login</Button>
+                  <div className="mt-4 text-center text-sm">
+                    <p className="text-muted-foreground">
+                      For demo purposes, use: <br />
+                      Email: demo@example.com <br />
+                      Password: password
+                    </p>
+                  </div>
+                </CardFooter>
+              </form>
+            </TabsContent>
+            
+            <TabsContent value="signup">
+              <form onSubmit={handleSignupSubmit}>
+                <CardHeader>
+                  <CardTitle>Create an account</CardTitle>
+                  <CardDescription>
+                    Start your startup journey with StartKaro
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Full Name</Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="name"
+                        placeholder="John Smith"
+                        className="pl-10"
+                        value={signupForm.name}
+                        onChange={(e) => setSignupForm({...signupForm, name: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-email">Email</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="signup-email"
+                        type="email"
+                        placeholder="john@example.com"
+                        className="pl-10"
+                        value={signupForm.email}
+                        onChange={(e) => setSignupForm({...signupForm, email: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-password">Password</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="signup-password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Create a strong password"
+                        className="pl-10"
+                        value={signupForm.password}
+                        onChange={(e) => setSignupForm({...signupForm, password: e.target.value})}
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-3 top-3 text-muted-foreground"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirm-password">Confirm Password</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="confirm-password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Confirm your password"
+                        className="pl-10"
+                        value={signupForm.confirmPassword}
+                        onChange={(e) => setSignupForm({...signupForm, confirmPassword: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox id="terms" />
+                    <Label htmlFor="terms" className="text-sm">
+                      I agree to the <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link> and <Link to="/privacy-policy" className="text-primary hover:underline">Privacy Policy</Link>
+                    </Label>
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <Button type="submit" className="w-full">Create Account</Button>
+                </CardFooter>
+              </form>
+            </TabsContent>
+          </Tabs>
+        </Card>
+      </main>
+      
+      <FooterComponent />
     </div>
   );
 };

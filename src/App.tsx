@@ -14,6 +14,7 @@ import Chatbot from "./pages/Chatbot";
 import HowItWorks from "./pages/HowItWorks";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import Resources from "./pages/Resources";
 
 const queryClient = new QueryClient();
 
@@ -22,9 +23,9 @@ const App = () => (
     <MotionConfig reducedMotion="user">
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <Toaster />
-          <Sonner />
           <BrowserRouter>
+            <Toaster />
+            <Sonner />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/dashboard" element={<Dashboard />} />
@@ -33,6 +34,7 @@ const App = () => (
               <Route path="/how-it-works" element={<HowItWorks />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
+              <Route path="/resources" element={<Resources />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
