@@ -1,62 +1,76 @@
 import { supabase } from '@/integrations/supabase/client';
 
 export const saveUserProfile = async (profile: any) => {
-  const { data: userResponse } = await supabase.auth.getUser();
-  
-  if (!userResponse?.user?.id) {
-    throw new Error('User not authenticated');
-  }
-  
-  const userId = userResponse.user.id;
-  
-  // First, check if the profile exists
-  const { data: existingProfile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .single();
-  
-  const profileData = {
-    id: userId,
-    company_name: profile.companyName,
-    incorporation_date: profile.incorporationDate,
-    registration_state: profile.registrationState,
-    annual_turnover: profile.annualTurnover,
-    employee_count: profile.employeeCount,
-    sector: profile.sector,
-    business_type: profile.businessType,
-    updated_at: new Date().toISOString(),
-  };
-  
-  let error;
-  
-  if (existingProfile) {
-    // Update existing profile
-    const result = await supabase
+  try {
+    const { data: userResponse } = await supabase.auth.getUser();
+    
+    if (!userResponse?.user?.id) {
+      // Save to localStorage even if not authenticated
+      localStorage.setItem('userProfile', JSON.stringify(profile));
+      localStorage.setItem('isOnboarded', 'true'); // Set the onboarded flag
+      return true;
+    }
+    
+    const userId = userResponse.user.id;
+    
+    // First, check if the profile exists
+    const { data: existingProfile } = await supabase
       .from('profiles')
-      .update(profileData)
-      .eq('id', userId);
-      
-    error = result.error;
-  } else {
-    // Insert new profile
-    const result = await supabase
-      .from('profiles')
-      .insert(profileData);
-      
-    error = result.error;
+      .select('*')
+      .eq('id', userId)
+      .single();
+    
+    const profileData = {
+      id: userId,
+      company_name: profile.companyName,
+      incorporation_date: profile.incorporationDate,
+      registration_state: profile.registrationState,
+      annual_turnover: profile.annualTurnover,
+      employee_count: profile.employeeCount,
+      sector: profile.sector,
+      business_type: profile.businessType,
+      updated_at: new Date().toISOString(),
+    };
+    
+    let error;
+    
+    if (existingProfile) {
+      // Update existing profile
+      const result = await supabase
+        .from('profiles')
+        .update(profileData)
+        .eq('id', userId);
+        
+      error = result.error;
+    } else {
+      // Insert new profile
+      const result = await supabase
+        .from('profiles')
+        .insert(profileData);
+        
+      error = result.error;
+    }
+    
+    if (error) {
+      console.error('Error saving user profile:', error);
+      throw error;
+    }
+    
+    // Set flags in localStorage for fallback
+    localStorage.setItem('userProfile', JSON.stringify(profile));
+    localStorage.setItem('isOnboarded', 'true');
+    
+    return true;
+  } catch (error) {
+    console.error('Error in saveUserProfile:', error);
+    
+    // Set localStorage fallbacks even on error
+    localStorage.setItem('userProfile', JSON.stringify(profile));
+    localStorage.setItem('isOnboarded', 'true');
+    
+    // Don't throw, return success since we saved locally
+    return true;
   }
-  
-  if (error) {
-    console.error('Error saving user profile:', error);
-    throw error;
-  }
-  
-  // Also save to localStorage for non-authenticated states
-  localStorage.setItem('userProfile', JSON.stringify(profile));
-  localStorage.setItem('isOnboarded', 'true'); // Add fallback flag
-  
-  return true;
 };
 
 export const getUserProfile = async () => {

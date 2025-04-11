@@ -16,6 +16,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ error: any }>;
   signup: (name: string, email: string, password: string) => Promise<{ error: any, user: any }>;
   logout: () => Promise<void>;
+  setUserOnboarded: (value: boolean) => void;
 }
 
 // Add a custom type that extends User to include name property
@@ -33,17 +34,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkIsOnboarded = async (userId: string) => {
     try {
+      // Check localStorage first for faster response
+      const localOnboarded = localStorage.getItem('isOnboarded');
+      if (localOnboarded === 'true') {
+        return true;
+      }
+      
       const { data } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
       
-      return !!data;
+      const onboardedStatus = !!data;
+      
+      // Update localStorage if onboarded in DB
+      if (onboardedStatus) {
+        localStorage.setItem('isOnboarded', 'true');
+      }
+      
+      return onboardedStatus;
     } catch (error) {
       console.error("Error checking onboarded status:", error);
-      return false;
+      // Fall back to localStorage
+      return localStorage.getItem('isOnboarded') === 'true';
     }
+  };
+
+  // Function to manually set the onboarded state
+  const setUserOnboarded = (value: boolean) => {
+    setIsOnboarded(value);
+    localStorage.setItem('isOnboarded', value ? 'true' : 'false');
   };
 
   useEffect(() => {
@@ -64,6 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           setUser(null);
           setIsOnboarded(false);
+          localStorage.removeItem('isOnboarded');
         }
       }
     );
@@ -136,6 +158,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    localStorage.removeItem('isOnboarded');
+    localStorage.removeItem('userProfile');
   };
 
   const logout = signOut;
@@ -152,7 +176,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signOut,
     login,
     signup,
-    logout
+    logout,
+    setUserOnboarded
   };
 
   return (

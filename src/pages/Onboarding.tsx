@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -151,7 +152,7 @@ const OnboardingPage = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const { user } = useAuth();
+  const { user, setUserOnboarded } = useAuth();
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -201,14 +202,18 @@ const OnboardingPage = () => {
       
       await saveUserProfile(profileData);
       
+      // Set onboarded state to true both in context and localStorage
+      setUserOnboarded(true);
+      
       toast({
         title: "Onboarding Complete",
         description: "Your startup profile has been saved successfully.",
       });
       
+      // Use a shorter timeout to redirect quickly
       setTimeout(() => {
-        navigate("/dashboard");
-      }, 1000);
+        navigate("/dashboard", { replace: true });
+      }, 500);
     } catch (error) {
       console.error("Failed to save profile:", error);
       toast({

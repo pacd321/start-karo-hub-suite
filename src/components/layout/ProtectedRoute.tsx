@@ -1,6 +1,6 @@
 
-import React from "react";
-import { Navigate } from "react-router-dom";
+import React, { useEffect } from "react";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 
 interface ProtectedRouteProps {
@@ -15,6 +15,23 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requireOnboarding = true,
 }) => {
   const { isAuthenticated, isAdmin, isOnboarded, isLoading } = useAuth();
+  const location = useLocation();
+
+  // If we're already on the onboarding page, don't check onboarding requirement
+  const isOnboardingPage = location.pathname === "/onboarding";
+
+  useEffect(() => {
+    // Debug information
+    console.log({
+      isAuthenticated,
+      isAdmin,
+      isOnboarded,
+      isLoading,
+      isOnboardingPage,
+      path: location.pathname,
+      requireOnboarding
+    });
+  }, [isAuthenticated, isAdmin, isOnboarded, isLoading, isOnboardingPage, location.pathname, requireOnboarding]);
 
   if (isLoading) {
     return (
@@ -32,8 +49,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Admin users bypass onboarding requirement
-  if (requireOnboarding && !isOnboarded && !isAdmin) {
+  // Skip onboarding check if we're already on the onboarding page or user is admin
+  if (requireOnboarding && !isOnboarded && !isAdmin && !isOnboardingPage) {
+    console.log("Redirecting to onboarding from:", location.pathname);
     return <Navigate to="/onboarding" replace />;
   }
 
