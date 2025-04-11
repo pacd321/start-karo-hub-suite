@@ -1,11 +1,9 @@
-
 import React, { useState, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { generateComplianceReport } from "@/utils/downloadUtils";
-import { getUserProfile } from "@/lib/supabase";
-import { getChecklistItems } from "@/lib/supabase";
+import { getUserProfile, getChecklistItems } from "@/lib/supabase";
 
 interface SectorComplianceMap {
   [key: string]: string[];
@@ -74,7 +72,7 @@ const ComplianceReport: React.FC<ComplianceReportProps> = ({
         if (propUserProfile && Object.keys(propUserProfile).length > 0) {
           setUserProfile(propUserProfile);
         } else {
-          // Try to get user profile from Supabase first
+          // Try to get user profile from Supabase
           const profile = await getUserProfile();
           
           if (profile) {
@@ -121,51 +119,51 @@ const ComplianceReport: React.FC<ComplianceReportProps> = ({
   const allRequirements = [...businessRequirements, ...sectorRequirements];
   
   // Handle report download
-  const handleDownload = () => {
+  const handleDownload = async () => {
     setDownloading(true);
     
-    // Prepare enriched profile with compliance status flags
-    let complianceFlags: {[key: string]: boolean} = {};
-    
-    if (userChecklist && userChecklist.length > 0) {
-      // Extract status flags from checklist
-      userChecklist.forEach((item: any) => {
-        if (item.title === "GST Registration") complianceFlags.hasGstRegistration = item.completed;
-        if (item.title.includes("Tax")) complianceFlags.hasTaxFiling = item.completed;
-        if (item.title.includes("Trademark")) complianceFlags.hasTrademark = item.completed;
-        if (item.title.includes("Employment") || item.title.includes("Labour")) complianceFlags.hasLabourCompliances = item.completed;
-        if (item.title.includes("Shop & Establishment")) complianceFlags.hasShopEstablishment = item.completed;
-      });
-    } else {
-      // Random flags for demonstration if no checklist is available
-      complianceFlags = {
-        hasGstRegistration: Math.random() > 0.5,
-        hasTaxFiling: Math.random() > 0.5,
-        hasTrademark: Math.random() > 0.5,
-        hasLabourCompliances: Math.random() > 0.5,
-        hasShopEstablishment: Math.random() > 0.5,
-      };
-    }
-    
-    // Format turnover for display
-    const turnoverFormatMap: {[key: string]: string} = {
-      "under_40l": "Under ₹40 lakhs",
-      "40l_to_1cr": "₹40 lakhs to ₹1 crore",
-      "1cr_to_5cr": "₹1 crore to ₹5 crore",
-      "above_5cr": "Above ₹5 crore"
-    };
-    
-    // Create display-ready profile
-    const formattedProfile = {
-      ...userProfile,
-      sector: mappedSector,
-      businessType: mappedBusinessType,
-      annualTurnover: turnoverFormatMap[userProfile.annualTurnover] || userProfile.annualTurnover,
-      ...complianceFlags
-    };
-    
     try {
-      if (generateComplianceReport(formattedProfile)) {
+      // Prepare enriched profile with compliance status flags
+      let complianceFlags: {[key: string]: boolean} = {};
+      
+      if (userChecklist && userChecklist.length > 0) {
+        // Extract status flags from checklist
+        userChecklist.forEach((item: any) => {
+          if (item.title === "GST Registration") complianceFlags.hasGstRegistration = item.completed;
+          if (item.title.includes("Tax")) complianceFlags.hasTaxFiling = item.completed;
+          if (item.title.includes("Trademark")) complianceFlags.hasTrademark = item.completed;
+          if (item.title.includes("Employment") || item.title.includes("Labour")) complianceFlags.hasLabourCompliances = item.completed;
+          if (item.title.includes("Shop & Establishment")) complianceFlags.hasShopEstablishment = item.completed;
+        });
+      } else {
+        // Random flags for demonstration if no checklist is available
+        complianceFlags = {
+          hasGstRegistration: Math.random() > 0.5,
+          hasTaxFiling: Math.random() > 0.5,
+          hasTrademark: Math.random() > 0.5,
+          hasLabourCompliances: Math.random() > 0.5,
+          hasShopEstablishment: Math.random() > 0.5,
+        };
+      }
+      
+      // Format turnover for display
+      const turnoverFormatMap: {[key: string]: string} = {
+        "under_40l": "Under ₹40 lakhs",
+        "40l_to_1cr": "₹40 lakhs to ₹1 crore",
+        "1cr_to_5cr": "₹1 crore to ₹5 crore",
+        "above_5cr": "Above ₹5 crore"
+      };
+      
+      // Create display-ready profile
+      const formattedProfile = {
+        ...userProfile,
+        sector: mappedSector,
+        businessType: mappedBusinessType,
+        annualTurnover: turnoverFormatMap[userProfile.annualTurnover] || userProfile.annualTurnover,
+        ...complianceFlags
+      };
+      
+      if (await generateComplianceReport(formattedProfile)) {
         toast({
           title: "Report Downloaded",
           description: "Your compliance report has been downloaded successfully.",

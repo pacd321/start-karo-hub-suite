@@ -1,20 +1,5 @@
 
-import { createClient } from '@supabase/supabase-js';
-
-// Default values for local development or when environment variables are missing
-// These will be overridden by actual environment variables when available
-const defaultSupabaseUrl = 'https://your-supabase-project-id.supabase.co';
-const defaultSupabaseAnonKey = 'your-anon-key';
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || defaultSupabaseUrl;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || defaultSupabaseAnonKey;
-
-if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
-  console.warn('Missing Supabase environment variables. Using default values for development.');
-  console.warn('Please set up your Supabase environment variables for proper functionality.');
-}
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { supabase } from '@/integrations/supabase/client';
 
 export const saveUserProfile = async (profile: any) => {
   const { data: user } = await supabase.auth.getUser();
@@ -23,20 +8,52 @@ export const saveUserProfile = async (profile: any) => {
     throw new Error('User not authenticated');
   }
   
-  const { error } = await supabase
-    .from('user_profiles')
-    .upsert({
-      id: user.user.id,
-      ...profile,
-      updated_at: new Date().toISOString(),
-    });
+  // First, check if the profile exists
+  const { data: existingProfile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.user.id)
+    .single();
+  
+  const profileData = {
+    id: user.user.id,
+    company_name: profile.companyName,
+    incorporation_date: profile.incorporationDate,
+    registration_state: profile.registrationState,
+    annual_turnover: profile.annualTurnover,
+    employee_count: profile.employeeCount,
+    sector: profile.sector,
+    business_type: profile.businessType,
+    updated_at: new Date().toISOString(),
+  };
+  
+  let error;
+  
+  if (existingProfile) {
+    // Update existing profile
+    const result = await supabase
+      .from('profiles')
+      .update(profileData)
+      .eq('id', user.user.id);
+      
+    error = result.error;
+  } else {
+    // Insert new profile
+    const result = await supabase
+      .from('profiles')
+      .insert(profileData);
+      
+    error = result.error;
+  }
   
   if (error) {
     console.error('Error saving user profile:', error);
+    // Also save to localStorage as backup
+    localStorage.setItem('userProfile', JSON.stringify(profile));
     throw error;
   }
   
-  // Also save to localStorage as backup and for non-authenticated states
+  // Also save to localStorage for non-authenticated states
   localStorage.setItem('userProfile', JSON.stringify(profile));
   
   return true;
@@ -52,7 +69,7 @@ export const getUserProfile = async () => {
   }
   
   const { data, error } = await supabase
-    .from('user_profiles')
+    .from('profiles')
     .select('*')
     .eq('id', user.user.id)
     .single();
@@ -64,10 +81,23 @@ export const getUserProfile = async () => {
     return localProfile ? JSON.parse(localProfile) : null;
   }
   
-  // Update localStorage with the latest data
-  localStorage.setItem('userProfile', JSON.stringify(data));
+  // Convert DB format to application format
+  const appProfile = data ? {
+    companyName: data.company_name,
+    incorporationDate: data.incorporation_date,
+    registrationState: data.registration_state,
+    annualTurnover: data.annual_turnover,
+    employeeCount: data.employee_count,
+    sector: data.sector,
+    businessType: data.business_type
+  } : null;
   
-  return data;
+  // Update localStorage with the latest data
+  if (appProfile) {
+    localStorage.setItem('userProfile', JSON.stringify(appProfile));
+  }
+  
+  return appProfile;
 };
 
 export const saveChecklistItems = async (items: any[]) => {
@@ -81,8 +111,13 @@ export const saveChecklistItems = async (items: any[]) => {
   
   // Prepare items for database with user_id
   const itemsWithUserId = items.map(item => ({
-    ...item,
     user_id: user.user.id,
+    item_id: item.id || item.item_id,
+    title: item.title,
+    category: item.category,
+    description: item.description,
+    completed: item.completed,
+    priority: item.priority,
     updated_at: new Date().toISOString()
   }));
   
@@ -129,12 +164,78 @@ export const getChecklistItems = async () => {
   }
   
   if (data && data.length > 0) {
+    // Convert DB format to application format
+    const formattedItems = data.map(item => ({
+      id: item.item_id,
+      item_id: item.item_id,
+      title: item.title,
+      category: item.category,
+      description: item.description,
+      completed: item.completed,
+      priority: item.priority
+    }));
+    
     // Update localStorage with the latest data
-    localStorage.setItem('userChecklist', JSON.stringify(data));
-    return data;
+    localStorage.setItem('userChecklist', JSON.stringify(formattedItems));
+    return formattedItems;
   } else {
     // If no items in DB, try localStorage
     const localChecklist = localStorage.getItem('userChecklist');
     return localChecklist ? JSON.parse(localChecklist) : [];
   }
+};
+
+// New knowledge base document functions
+export const saveKnowledgeDocument = async (document: any) => {
+  const { data: user } = await supabase.auth.getUser();
+  
+  if (!user?.user?.id) {
+    throw new Error('User not authenticated');
+  }
+  
+  const { error } = await supabase
+    .from('knowledge_documents')
+    .insert({
+      user_id: user.user.id,
+      name: document.name,
+      description: document.description || '',
+      file_path: document.file_path,
+      file_type: document.file_type,
+      file_size: document.file_size,
+      is_admin_document: document.is_admin_document || false
+    });
+  
+  if (error) {
+    console.error('Error saving knowledge document:', error);
+    throw error;
+  }
+  
+  return true;
+};
+
+export const getKnowledgeDocuments = async (includeAdminDocs = false) => {
+  const { data: user } = await supabase.auth.getUser();
+  
+  if (!user?.user?.id) {
+    return [];
+  }
+  
+  let query = supabase
+    .from('knowledge_documents')
+    .select('*')
+    
+  if (includeAdminDocs) {
+    query = query.or(`user_id.eq.${user.user.id},is_admin_document.eq.true`);
+  } else {
+    query = query.eq('user_id', user.user.id);
+  }
+  
+  const { data, error } = await query.order('created_at', { ascending: false });
+  
+  if (error) {
+    console.error('Error fetching knowledge documents:', error);
+    return [];
+  }
+  
+  return data || [];
 };

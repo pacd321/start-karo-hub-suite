@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { getUserProfile } from '@/lib/supabase';
 
 /**
  * Utility functions for generating and downloading reports
@@ -8,8 +9,17 @@ import autoTable from 'jspdf-autotable';
 /**
  * Generate compliance report PDF
  */
-export const generateComplianceReport = (userData: any) => {
+export const generateComplianceReport = async (userData: any) => {
   try {
+    // If userData is not provided, try to get it
+    if (!userData || Object.keys(userData).length === 0) {
+      userData = await getUserProfile();
+    }
+    
+    if (!userData) {
+      throw new Error('No user profile data available');
+    }
+    
     // Create a new PDF document
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
@@ -116,188 +126,231 @@ const getRecommendations = (userData: any) => {
 /**
  * Generate tax calculation report PDF
  */
-export const generateTaxReport = (taxData: any) => {
-  // Create a new PDF document
-  const doc = new jsPDF();
-  const pageWidth = doc.internal.pageSize.width;
-  
-  // Add title
-  doc.setFontSize(20);
-  doc.setTextColor(33, 37, 41);
-  doc.text("Tax Calculation Report", pageWidth / 2, 20, { align: 'center' });
-  
-  // Add company details
-  doc.setFontSize(12);
-  doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 30);
-  doc.text(`Company: ${taxData.companyName || "Your Company"}`, 20, 40);
-  doc.text(`Financial Year: ${taxData.financialYear || "2023-24"}`, 20, 45);
-  
-  // Add tax calculation table
-  const taxDetails = [
-    ["Particular", "Amount (₹)"],
-    ["Revenue", taxData.revenue?.toLocaleString() || "0"],
-    ["Expenses", taxData.expenses?.toLocaleString() || "0"],
-    ["Profit", ((taxData.revenue || 0) - (taxData.expenses || 0)).toLocaleString()],
-    ["Taxable Income", taxData.taxableIncome?.toLocaleString() || "0"],
-    ["Tax Rate", taxData.taxRate || "25%"],
-    ["Estimated Tax", taxData.estimatedTax?.toLocaleString() || "0"]
-  ];
-  
-  // Use autoTable as a function
-  autoTable(doc, {
-    startY: 55,
-    head: [taxDetails[0]],
-    body: taxDetails.slice(1),
-    theme: 'grid',
-    headStyles: { fillColor: [41, 128, 185], textColor: 255 },
-    alternateRowStyles: { fillColor: [240, 240, 240] }
-  });
-  
-  // Add tax saving suggestions
-  const suggestions = [
-    "Consider registering as a startup under Startup India to avail tax benefits",
-    "Explore Section 80IAC for tax holiday benefits for eligible startups",
-    "Utilize R&D expenditure benefits under section 35(2AB)",
-    "Consider angel tax exemption under section 56(2)(viib)"
-  ];
-  
-  // Use doc.autoTable.previous for getting the final Y position
-  let suggestionY = (doc as any).lastAutoTable.finalY + 20;
-  doc.setFontSize(14);
-  doc.text("Tax Saving Suggestions", 20, suggestionY);
-  
-  suggestionY += 10;
-  doc.setFontSize(10);
-  suggestions.forEach((suggestion, index) => {
-    doc.text(`• ${suggestion}`, 25, suggestionY + (index * 6));
-  });
-  
-  // Save the PDF
-  doc.save(`tax-report-${taxData.companyName || "company"}-${new Date().toLocaleDateString()}.pdf`);
-  
-  return true;
+export const generateTaxReport = async (taxData: any) => {
+  try {
+    // If no company name is provided, try to get user profile
+    if (!taxData.companyName) {
+      const userData = await getUserProfile();
+      if (userData && userData.companyName) {
+        taxData.companyName = userData.companyName;
+      }
+    }
+    
+    // Create a new PDF document
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    
+    // Add title
+    doc.setFontSize(20);
+    doc.setTextColor(33, 37, 41);
+    doc.text("Tax Calculation Report", pageWidth / 2, 20, { align: 'center' });
+    
+    // Add company details
+    doc.setFontSize(12);
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 30);
+    doc.text(`Company: ${taxData.companyName || "Your Company"}`, 20, 40);
+    doc.text(`Financial Year: ${taxData.financialYear || "2023-24"}`, 20, 45);
+    
+    // Add tax calculation table
+    const taxDetails = [
+      ["Particular", "Amount (₹)"],
+      ["Revenue", taxData.revenue?.toLocaleString() || "0"],
+      ["Expenses", taxData.expenses?.toLocaleString() || "0"],
+      ["Profit", ((taxData.revenue || 0) - (taxData.expenses || 0)).toLocaleString()],
+      ["Taxable Income", taxData.taxableIncome?.toLocaleString() || "0"],
+      ["Tax Rate", taxData.taxRate || "25%"],
+      ["Estimated Tax", taxData.estimatedTax?.toLocaleString() || "0"]
+    ];
+    
+    // Use autoTable as a function
+    autoTable(doc, {
+      startY: 55,
+      head: [taxDetails[0]],
+      body: taxDetails.slice(1),
+      theme: 'grid',
+      headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+      alternateRowStyles: { fillColor: [240, 240, 240] }
+    });
+    
+    // Add tax saving suggestions
+    const suggestions = [
+      "Consider registering as a startup under Startup India to avail tax benefits",
+      "Explore Section 80IAC for tax holiday benefits for eligible startups",
+      "Utilize R&D expenditure benefits under section 35(2AB)",
+      "Consider angel tax exemption under section 56(2)(viib)"
+    ];
+    
+    // Use doc.autoTable.previous for getting the final Y position
+    let suggestionY = (doc as any).lastAutoTable.finalY + 20;
+    doc.setFontSize(14);
+    doc.text("Tax Saving Suggestions", 20, suggestionY);
+    
+    suggestionY += 10;
+    doc.setFontSize(10);
+    suggestions.forEach((suggestion, index) => {
+      doc.text(`• ${suggestion}`, 25, suggestionY + (index * 6));
+    });
+    
+    // Save the PDF
+    doc.save(`tax-report-${taxData.companyName || "company"}-${new Date().toLocaleDateString()}.pdf`);
+    
+    return true;
+  } catch (error) {
+    console.error("Error generating tax report:", error);
+    return false;
+  }
 };
 
 /**
  * Generate business plan template
  */
-export const downloadBusinessPlanTemplate = () => {
-  // Create a new PDF document
-  const doc = new jsPDF();
-  const pageWidth = doc.internal.pageSize.width;
-  
-  // Add title
-  doc.setFontSize(20);
-  doc.setTextColor(33, 37, 41);
-  doc.text("Business Plan Template", pageWidth / 2, 20, { align: 'center' });
-  
-  // Add sections
-  const sections = [
-    { title: "1. Executive Summary", content: [
-      "Business Name:",
-      "Business Location:",
-      "Business Model:",
-      "Vision & Mission:",
-      "Products/Services:",
-      "Target Market:",
-      "USP (Unique Selling Proposition):",
-      "Funding Requirements:"
-    ]},
-    { title: "2. Company Description", content: [
-      "Company Background:",
-      "Legal Structure:",
-      "Industry Analysis:",
-      "Growth Opportunities:",
-      "Business Goals:"
-    ]},
-    { title: "3. Market Analysis", content: [
-      "Target Market Demographics:",
-      "Market Size:",
-      "Market Trends:",
-      "Competitor Analysis:",
-      "SWOT Analysis:"
-    ]},
-    { title: "4. Organization & Management", content: [
-      "Organizational Structure:",
-      "Management Team:",
-      "Board of Directors/Advisors:",
-      "Legal & Accounting Support:"
-    ]},
-    { title: "5. Products or Services", content: [
-      "Description:",
-      "Life Cycle:",
-      "Intellectual Property:",
-      "R&D Activities:"
-    ]},
-    { title: "6. Marketing & Sales Strategy", content: [
-      "Marketing Channels:",
-      "Pricing Strategy:",
-      "Sales Strategy:",
-      "Growth Strategy:"
-    ]},
-    { title: "7. Financial Projections", content: [
-      "Income Statement:",
-      "Balance Sheet:",
-      "Cash Flow Statement:",
-      "Break-even Analysis:",
-      "Funding Requirements:",
-      "Use of Funds:"
-    ]},
-    { title: "8. Compliance & Regulatory Requirements", content: [
-      "Licenses Required:",
-      "Permits Required:",
-      "Tax Obligations:",
-      "Labor Law Compliance:",
-      "Industry-specific Regulations:"
-    ]},
-    { title: "9. Risk Assessment", content: [
-      "Internal Risks:",
-      "External Risks:",
-      "Mitigation Strategies:"
-    ]},
-    { title: "10. Implementation Timeline", content: [
-      "Key Milestones:",
-      "Launch Plan:",
-      "Scaling Strategy:"
-    ]}
-  ];
-  
-  let yPosition = 30;
-  
-  sections.forEach(section => {
-    // Check if we need a new page
-    if (yPosition > 250) {
-      doc.addPage();
-      yPosition = 20;
+export const downloadBusinessPlanTemplate = async () => {
+  try {
+    // Get user profile for company name
+    const userProfile = await getUserProfile();
+    
+    // Create a new PDF document
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    
+    // Add title
+    doc.setFontSize(20);
+    doc.setTextColor(33, 37, 41);
+    doc.text("Business Plan Template", pageWidth / 2, 20, { align: 'center' });
+    
+    // Add company name if available
+    if (userProfile && userProfile.companyName) {
+      doc.setFontSize(16);
+      doc.text(`For: ${userProfile.companyName}`, pageWidth / 2, 30, { align: 'center' });
     }
     
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.text(section.title, 20, yPosition);
-    doc.setFont(undefined, 'normal');
-    
-    yPosition += 10;
+    // Add generated date
     doc.setFontSize(10);
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, pageWidth / 2, 38, { align: 'center' });
     
-    section.content.forEach(item => {
-      doc.text(`• ${item}`, 25, yPosition);
-      yPosition += 7;
+    // Add sections
+    const sections = [
+      { title: "1. Executive Summary", content: [
+        "Business Name:",
+        "Business Location:",
+        "Business Model:",
+        "Vision & Mission:",
+        "Products/Services:",
+        "Target Market:",
+        "USP (Unique Selling Proposition):",
+        "Funding Requirements:"
+      ]},
+      { title: "2. Company Description", content: [
+        "Company Background:",
+        "Legal Structure:",
+        "Industry Analysis:",
+        "Growth Opportunities:",
+        "Business Goals:"
+      ]},
+      { title: "3. Market Analysis", content: [
+        "Target Market Demographics:",
+        "Market Size:",
+        "Market Trends:",
+        "Competitor Analysis:",
+        "SWOT Analysis:"
+      ]},
+      { title: "4. Organization & Management", content: [
+        "Organizational Structure:",
+        "Management Team:",
+        "Board of Directors/Advisors:",
+        "Legal & Accounting Support:"
+      ]},
+      { title: "5. Products or Services", content: [
+        "Description:",
+        "Life Cycle:",
+        "Intellectual Property:",
+        "R&D Activities:"
+      ]},
+      { title: "6. Marketing & Sales Strategy", content: [
+        "Marketing Channels:",
+        "Pricing Strategy:",
+        "Sales Strategy:",
+        "Growth Strategy:"
+      ]},
+      { title: "7. Financial Projections", content: [
+        "Income Statement:",
+        "Balance Sheet:",
+        "Cash Flow Statement:",
+        "Break-even Analysis:",
+        "Funding Requirements:",
+        "Use of Funds:"
+      ]},
+      { title: "8. Compliance & Regulatory Requirements", content: [
+        "Licenses Required:",
+        "Permits Required:",
+        "Tax Obligations:",
+        "Labor Law Compliance:",
+        "Industry-specific Regulations:"
+      ]},
+      { title: "9. Risk Assessment", content: [
+        "Internal Risks:",
+        "External Risks:",
+        "Mitigation Strategies:"
+      ]},
+      { title: "10. Implementation Timeline", content: [
+        "Key Milestones:",
+        "Launch Plan:",
+        "Scaling Strategy:"
+      ]}
+    ];
+    
+    let yPosition = 30;
+    
+    sections.forEach(section => {
+      // Check if we need a new page
+      if (yPosition > 250) {
+        doc.addPage();
+        yPosition = 20;
+      }
+      
+      doc.setFontSize(14);
+      doc.setFont(undefined, 'bold');
+      doc.text(section.title, 20, yPosition);
+      doc.setFont(undefined, 'normal');
+      
+      yPosition += 10;
+      doc.setFontSize(10);
+      
+      section.content.forEach(item => {
+        doc.text(`• ${item}`, 25, yPosition);
+        yPosition += 7;
+      });
+      
+      yPosition += 10;
     });
     
-    yPosition += 10;
-  });
-  
-  // Save the PDF
-  doc.save(`business-plan-template-${new Date().toLocaleDateString()}.pdf`);
-  
-  return true;
+    // Save the PDF with company name if available
+    const companyName = userProfile?.companyName ? 
+      `-${userProfile.companyName.replace(/\s+/g, '-').toLowerCase()}` : '';
+    const filename = `business-plan-template${companyName}-${new Date().toLocaleDateString()}.pdf`;
+    doc.save(filename);
+    
+    return true;
+  } catch (error) {
+    console.error("Error generating business plan template:", error);
+    return false;
+  }
 };
 
 /**
  * Generate sector-specific compliance checklist PDF
  */
-export const generateSectorComplianceChecklist = (userData: any) => {
+export const generateSectorComplianceChecklist = async (userData: any) => {
   try {
+    // If userData is not provided, try to get it
+    if (!userData || Object.keys(userData).length === 0) {
+      userData = await getUserProfile();
+    }
+    
+    if (!userData) {
+      throw new Error('No user profile data available');
+    }
+    
     // Create a new PDF document
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;

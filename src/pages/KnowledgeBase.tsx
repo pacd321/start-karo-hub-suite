@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,8 @@ import {
   Lock, 
   Unlock, 
   FileText,
-  BookOpen
+  BookOpen,
+  Trash
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -31,6 +32,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
+import { getKnowledgeDocuments } from "@/lib/supabase";
 
 const KnowledgeBase = () => {
   const [activeTab, setActiveTab] = useState("my-documents");
@@ -41,25 +44,34 @@ const KnowledgeBase = () => {
     password: ""
   });
   
-  // Queries can be expanded with actual API endpoints in a real implementation
-  const { data: documentData, isLoading: isLoadingDocuments } = useQuery({
-    queryKey: ['documents'],
+  // Use React Query for fetching documents
+  const { 
+    data: documentData, 
+    isLoading: isLoadingDocuments,
+    refetch: refetchDocuments
+  } = useQuery({
+    queryKey: ['documents', isAdmin],
     queryFn: async () => {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Get user documents
+      const userDocs = await getKnowledgeDocuments(false);
+      let adminDocs = [];
+      
+      // If admin, also get admin documents
+      if (isAdmin) {
+        const { data, error } = await supabase
+          .from('knowledge_documents')
+          .select('*')
+          .eq('is_admin_document', true)
+          .order('created_at', { ascending: false });
+          
+        if (!error && data) {
+          adminDocs = data;
+        }
+      }
+      
       return { 
-        userDocuments: [
-          { id: "1", name: "compliance_report.pdf", type: "application/pdf", size: "2.3 MB" },
-          { id: "2", name: "business_plan.pdf", type: "application/pdf", size: "1.8 MB" },
-          { id: "3", name: "tax_documents.pdf", type: "application/pdf", size: "0.9 MB" }
-        ],
-        adminDocuments: [
-          { id: "4", name: "startup_guidelines_2024.pdf", type: "application/pdf", size: "3.5 MB" },
-          { id: "5", name: "sector_analysis_tech.pdf", type: "application/pdf", size: "2.7 MB" },
-          { id: "6", name: "regulatory_framework.pdf", type: "application/pdf", size: "4.2 MB" },
-          { id: "7", name: "investment_trends_q2_2024.pdf", type: "application/pdf", size: "1.9 MB" },
-          { id: "8", name: "tax_filing_guide.pdf", type: "application/pdf", size: "2.1 MB" }
-        ]
+        userDocuments: userDocs,
+        adminDocuments: adminDocs
       };
     },
   });
@@ -90,6 +102,60 @@ const KnowledgeBase = () => {
       title: "Logged Out",
       description: "You are now viewing the user knowledge base."
     });
+  };
+  
+  const handleDeleteDocument = async (id: string, isAdminDoc = false) => {
+    try {
+      const { error } = await supabase
+        .from('knowledge_documents')
+        .delete()
+        .eq('id', id);
+        
+      if (error) throw error;
+      
+      toast({
+        title: "Document Deleted",
+        description: "The document was successfully deleted."
+      });
+      
+      // Refresh document list
+      refetchDocuments();
+      
+    } catch (error) {
+      console.error("Error deleting document:", error);
+      toast({
+        title: "Delete Failed",
+        description: "There was an error deleting the document.",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  const handleToggleAdminStatus = async (id: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('knowledge_documents')
+        .update({ is_admin_document: !currentStatus })
+        .eq('id', id);
+        
+      if (error) throw error;
+      
+      toast({
+        title: "Status Updated",
+        description: `Document is now ${!currentStatus ? 'an admin' : 'a regular'} document.`
+      });
+      
+      // Refresh document list
+      refetchDocuments();
+      
+    } catch (error) {
+      console.error("Error updating document status:", error);
+      toast({
+        title: "Update Failed",
+        description: "There was an error updating the document status.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -184,7 +250,59 @@ const KnowledgeBase = () => {
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
               {/* Main Content */}
               <div className="lg:col-span-3">
-                <KnowledgeUpload />
+                <KnowledgeUpload onUploadComplete={refetchDocuments} />
+                
+                {/* User Documents List */}
+                {isLoadingDocuments ? (
+                  <div className="mt-6 text-center py-10">Loading your documents...</div>
+                ) : (
+                  <div className="mt-6">
+                    <h3 className="text-lg font-medium mb-4">Your Documents</h3>
+                    {documentData?.userDocuments && documentData.userDocuments.length > 0 ? (
+                      <div className="grid gap-4 md:grid-cols-2">
+                        {documentData.userDocuments.map((doc: any) => (
+                          <div key={doc.id} className="bg-white p-4 rounded-lg border">
+                            <div className="flex justify-between items-start">
+                              <div className="flex gap-3">
+                                <FileText className="h-6 w-6 text-blue-600" />
+                                <div>
+                                  <h3 className="font-medium mb-1">{doc.name}</h3>
+                                  <p className="text-xs text-muted-foreground mb-2">
+                                    {doc.file_size || "Unknown size"} • {doc.file_type?.split('/')[1]?.toUpperCase() || "FILE"}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex gap-2 mt-3">
+                              <Button variant="outline" size="sm">View</Button>
+                              {isAdmin && (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleToggleAdminStatus(doc.id, !!doc.is_admin_document)}
+                                >
+                                  {doc.is_admin_document ? "Remove Admin" : "Make Admin"}
+                                </Button>
+                              )}
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="text-red-600 hover:text-red-700"
+                                onClick={() => handleDeleteDocument(doc.id)}
+                              >
+                                <Trash className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-10 border rounded-lg bg-slate-50">
+                        <p className="text-muted-foreground">You haven't uploaded any documents yet.</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               
               {/* Sidebar */}
@@ -288,29 +406,58 @@ const KnowledgeBase = () => {
                 </div>
               </div>
               
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {documentData?.adminDocuments.map(doc => (
-                  <div key={doc.id} className="bg-white p-4 rounded-lg border">
-                    <div className="flex justify-between items-start">
-                      <div className="flex gap-3">
-                        <FileText className="h-6 w-6 text-blue-600" />
-                        <div>
-                          <h3 className="font-medium mb-1">{doc.name}</h3>
-                          <p className="text-xs text-muted-foreground mb-2">{doc.size} • {doc.type.split('/')[1].toUpperCase()}</p>
+              {isLoadingDocuments ? (
+                <div className="text-center py-10">Loading admin documents...</div>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {documentData?.adminDocuments && documentData.adminDocuments.length > 0 ? (
+                    documentData.adminDocuments.map((doc: any) => (
+                      <div key={doc.id} className="bg-white p-4 rounded-lg border">
+                        <div className="flex justify-between items-start">
+                          <div className="flex gap-3">
+                            <FileText className="h-6 w-6 text-blue-600" />
+                            <div>
+                              <h3 className="font-medium mb-1">{doc.name}</h3>
+                              <p className="text-xs text-muted-foreground mb-2">
+                                {doc.file_size || "Unknown size"} • {doc.file_type?.split('/')[1]?.toUpperCase() || "FILE"}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 mt-3">
+                          <Button variant="outline" size="sm">View</Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleToggleAdminStatus(doc.id, true)}
+                          >
+                            Remove Admin
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-red-600 hover:text-red-700"
+                            onClick={() => handleDeleteDocument(doc.id, true)}
+                          >
+                            <Trash className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-10 border rounded-lg bg-slate-50 col-span-3">
+                      <p className="text-muted-foreground">No admin documents available.</p>
                     </div>
-                    <div className="flex gap-2 mt-3">
-                      <Button variant="outline" size="sm">View</Button>
-                      <Button variant="outline" size="sm">Edit</Button>
-                      <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">Delete</Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  )}
+                </div>
+              )}
               
               <div className="mt-6">
-                <Button>Upload New Admin Document</Button>
+                <KnowledgeUpload 
+                  isAdminUpload={true} 
+                  onUploadComplete={refetchDocuments}
+                  buttonLabel="Upload New Admin Document"
+                />
               </div>
             </TabsContent>
           )}

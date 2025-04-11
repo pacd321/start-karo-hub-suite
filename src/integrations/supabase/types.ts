@@ -9,7 +9,123 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      checklist_items: {
+        Row: {
+          category: string | null
+          completed: boolean | null
+          created_at: string | null
+          description: string | null
+          id: string
+          item_id: string
+          priority: string | null
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          completed?: boolean | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          item_id: string
+          priority?: string | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          completed?: boolean | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          item_id?: string
+          priority?: string | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      knowledge_documents: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          file_path: string | null
+          file_size: string | null
+          file_type: string | null
+          id: string
+          is_admin_document: boolean | null
+          name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          file_path?: string | null
+          file_size?: string | null
+          file_type?: string | null
+          id?: string
+          is_admin_document?: boolean | null
+          name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          file_path?: string | null
+          file_size?: string | null
+          file_type?: string | null
+          id?: string
+          is_admin_document?: boolean | null
+          name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          annual_turnover: string | null
+          business_type: string | null
+          company_name: string | null
+          created_at: string | null
+          employee_count: string | null
+          id: string
+          incorporation_date: string | null
+          registration_state: string | null
+          sector: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          annual_turnover?: string | null
+          business_type?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          employee_count?: string | null
+          id: string
+          incorporation_date?: string | null
+          registration_state?: string | null
+          sector?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          annual_turnover?: string | null
+          business_type?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          employee_count?: string | null
+          id?: string
+          incorporation_date?: string | null
+          registration_state?: string | null
+          sector?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

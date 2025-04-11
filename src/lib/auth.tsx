@@ -1,252 +1,84 @@
 
-import React, { createContext, useState, useContext, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { toast } from "@/hooks/use-toast";
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Session, User } from '@supabase/supabase-js';
 
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: "user" | "admin";
-}
-
-export interface AuthContextType {
+interface AuthContextType {
   user: User | null;
-  loading: boolean;
-  error: string | null;
+  session: Session | null;
   isAuthenticated: boolean;
-  isAdmin: boolean;
-  isOnboarded: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  signup: (name: string, email: string, password: string) => Promise<void>;
-  logout: () => void;
+  isLoading: boolean;
+  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string) => Promise<{ error: any, user: any }>;
+  signOut: () => Promise<void>;
 }
 
-// Create the context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Demo users for the application
-const DEMO_USERS = [
-  { 
-    id: "user-1", 
-    name: "Demo User", 
-    email: "demo@example.com", 
-    password: "password", 
-    role: "user" as const 
-  },
-  { 
-    id: "admin-1", 
-    name: "Admin User", 
-    email: "admin@example.com", 
-    password: "admin123", 
-    role: "admin" as const 
-  }
-];
-
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
+  const [session, setSession] = useState<Session | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Check for existing session on mount
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, newSession) => {
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+      }
+    );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
+      setIsLoading(false);
+    });
+    
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  // Check if user has completed onboarding
-  const isOnboarded = localStorage.getItem("isOnboarded") === "true";
+  const signIn = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    return { error };
+  };
 
-  // Login function
-  const login = async (email: string, password: string): Promise<void> => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const foundUser = DEMO_USERS.find(
-        (u) => u.email === email && u.password === password
-      );
-      
-      if (foundUser) {
-        // Extract user data without the password
-        const { password: _, ...userData } = foundUser;
-        setUser(userData);
-        localStorage.setItem("user", JSON.stringify(userData));
-        
-        toast({
-          title: "Login Successful",
-          description: `Welcome back, ${userData.name}!`,
-        });
-        
-        // Redirect based on role and onboarding status
-        if (userData.role === "admin") {
-          navigate("/dashboard");
-        } else if (isOnboarded) {
-          navigate("/dashboard");
-        } else {
-          navigate("/onboarding");
-        }
-      } else {
-        setError("Invalid email or password");
-        toast({
-          title: "Login Failed",
-          description: "Invalid email or password.",
-          variant: "destructive",
-        });
-      }
-    } catch (err) {
-      setError("An error occurred during login");
-      toast({
-        title: "Login Failed",
-        description: "An error occurred. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  // Signup function
-  const signup = async (name: string, email: string, password: string): Promise<void> => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Check if user already exists
-      const userExists = DEMO_USERS.some((u) => u.email === email);
-      
-      if (userExists) {
-        setError("Email already exists");
-        toast({
-          title: "Signup Failed",
-          description: "An account with this email already exists.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Create new user (in a real app, this would call an API to create the user)
-      const newUser = {
-        id: `user-${Date.now()}`,
-        name,
-        email,
-        role: "user" as const,
-      };
-      
-      setUser(newUser);
-      localStorage.setItem("user", JSON.stringify(newUser));
-      
-      toast({
-        title: "Account Created",
-        description: "Your account has been created successfully.",
-      });
-      
-      // Redirect to onboarding
-      navigate("/onboarding");
-    } catch (err) {
-      setError("An error occurred during signup");
-      toast({
-        title: "Signup Failed",
-        description: "An error occurred. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  // Logout function
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem("user");
-    navigate("/login");
-    
-    toast({
-      title: "Logged Out",
-      description: "You have been logged out successfully.",
+  const signUp = async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signUp({ 
+      email, 
+      password
     });
+    return { error, user: data?.user || null };
   };
-  
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+  };
+
+  const value = {
+    user,
+    session,
+    isAuthenticated: !!user,
+    isLoading,
+    signIn,
+    signUp,
+    signOut
+  };
+
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        error,
-        isAuthenticated: !!user,
-        isAdmin: user?.role === "admin",
-        isOnboarded,
-        login,
-        signup,
-        logout,
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
-// Custom hook to use the auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error('useAuth must be used within an AuthProvider');
   }
-  
   return context;
 };
-
-// Higher order component to protect routes
-export const withAuth = 
-  (Component: React.ComponentType, requireAdmin = false, requireOnboarding = true) => {
-    // eslint-disable-next-line react/display-name
-    return (props: any) => {
-      const { isAuthenticated, isAdmin, isOnboarded, loading } = useAuth();
-      const navigate = useNavigate();
-
-      useEffect(() => {
-        if (!loading) {
-          if (!isAuthenticated) {
-            navigate("/login");
-          } else if (requireAdmin && !isAdmin) {
-            navigate("/dashboard");
-          } else if (requireOnboarding && !isOnboarded && !isAdmin) {
-            navigate("/onboarding");
-          }
-        }
-      }, [isAuthenticated, isAdmin, isOnboarded, loading, navigate]);
-
-      if (loading) {
-        return (
-          <div className="h-screen flex items-center justify-center">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary" />
-          </div>
-        );
-      }
-
-      if (!isAuthenticated) {
-        return null;
-      }
-
-      if (requireAdmin && !isAdmin) {
-        return null;
-      }
-
-      if (requireOnboarding && !isOnboarded && !isAdmin) {
-        return null;
-      }
-
-      return <Component {...props} />;
-    };
-  };
