@@ -2,16 +2,17 @@
 import ChatInterface from "@/components/chatbot/ChatInterface";
 import HeaderComponent from "@/components/layout/Header";
 import FooterComponent from "@/components/layout/Footer";
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 
 const Chatbot = () => {
   // Ref to scroll to top on mount
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Scroll to top when component mounts
-  useEffect(() => {
+  // Use useLayoutEffect instead of useEffect to ensure scrolling happens before render
+  useLayoutEffect(() => {
     if (containerRef.current) {
       containerRef.current.scrollTop = 0;
+      window.scrollTo(0, 0);
     }
   }, []);
 

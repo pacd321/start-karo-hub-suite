@@ -4,6 +4,8 @@ import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { generateComplianceReport } from "@/utils/downloadUtils";
+import { getUserProfile } from "@/lib/supabase";
+import { getChecklistItems } from "@/lib/supabase";
 
 interface SectorComplianceMap {
   [key: string]: string[];
@@ -61,31 +63,56 @@ const ComplianceReport: React.FC<ComplianceReportProps> = ({
 }) => {
   const [downloading, setDownloading] = useState(false);
   const [userProfile, setUserProfile] = useState<any>({});
+  const [userChecklist, setUserChecklist] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Load user profile from localStorage or props
+  // Load user profile from Supabase or localStorage
   useEffect(() => {
-    if (propUserProfile && Object.keys(propUserProfile).length > 0) {
-      setUserProfile(propUserProfile);
-    } else {
-      const storedProfile = localStorage.getItem("userProfile");
-      if (storedProfile) {
-        setUserProfile(JSON.parse(storedProfile));
-      } else {
-        // Default profile
-        setUserProfile({
-          companyName: "Your Company",
-          sector: "technology",
-          businessType: "pvt_ltd",
-          registrationState: "Karnataka",
-          annualTurnover: "under_40l"
-        });
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        if (propUserProfile && Object.keys(propUserProfile).length > 0) {
+          setUserProfile(propUserProfile);
+        } else {
+          // Try to get user profile from Supabase first
+          const profile = await getUserProfile();
+          
+          if (profile) {
+            setUserProfile(profile);
+          } else {
+            // Fall back to default profile
+            setUserProfile({
+              companyName: "Your Company",
+              sector: "technology",
+              businessType: "pvt_ltd",
+              registrationState: "Karnataka",
+              annualTurnover: "under_40l",
+              incorporationDate: "2023-06-15"
+            });
+          }
+        }
+        
+        // Load checklist items
+        const checklist = await getChecklistItems();
+        setUserChecklist(checklist || []);
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      } finally {
+        setIsLoading(false);
       }
-    }
+    };
+    
+    fetchData();
   }, [propUserProfile]);
 
   // Get the appropriate compliance requirements
-  const mappedSector = sectorMapping[userProfile.sector] || sectorMapping["technology"] || "Technology";
-  const mappedBusinessType = businessTypeMapping[userProfile.businessType] || businessTypeMapping["pvt_ltd"] || "Private Limited Company";
+  const mappedSector = userProfile.sector ? 
+    sectorMapping[userProfile.sector.toLowerCase()] || userProfile.sector : 
+    "Technology";
+    
+  const mappedBusinessType = userProfile.businessType ? 
+    businessTypeMapping[userProfile.businessType.toLowerCase()] || userProfile.businessType : 
+    "Private Limited Company";
   
   const sectorRequirements = sectorCompliance[mappedSector] || sectorCompliance["Technology"];
   const businessRequirements = businessTypeCompliance[mappedBusinessType] || businessTypeCompliance["Private Limited Company"];
@@ -98,13 +125,11 @@ const ComplianceReport: React.FC<ComplianceReportProps> = ({
     setDownloading(true);
     
     // Prepare enriched profile with compliance status flags
-    const storedChecklist = localStorage.getItem("userChecklist");
     let complianceFlags: {[key: string]: boolean} = {};
     
-    if (storedChecklist) {
-      const checklist = JSON.parse(storedChecklist);
+    if (userChecklist && userChecklist.length > 0) {
       // Extract status flags from checklist
-      checklist.forEach((item: any) => {
+      userChecklist.forEach((item: any) => {
         if (item.title === "GST Registration") complianceFlags.hasGstRegistration = item.completed;
         if (item.title.includes("Tax")) complianceFlags.hasTaxFiling = item.completed;
         if (item.title.includes("Trademark")) complianceFlags.hasTrademark = item.completed;
@@ -164,6 +189,20 @@ const ComplianceReport: React.FC<ComplianceReportProps> = ({
     }
   };
   
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Compliance Report</CardTitle>
+          <CardDescription>Loading your compliance data...</CardDescription>
+        </CardHeader>
+        <CardContent className="h-48 flex justify-center items-center">
+          <div>Loading...</div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
   return (
     <Card>
       <CardHeader>
@@ -207,6 +246,9 @@ const ComplianceReport: React.FC<ComplianceReportProps> = ({
             
             <div className="text-muted-foreground">Incorporation Date:</div>
             <div className="font-medium">{userProfile.incorporationDate || "Not specified"}</div>
+            
+            <div className="text-muted-foreground">Company Name:</div>
+            <div className="font-medium">{userProfile.companyName || "Your Company"}</div>
           </div>
         </div>
       </CardContent>

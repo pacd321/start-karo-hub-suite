@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { CheckCircle2, Circle, Clock, FileText, Download, ExternalLink } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,13 +6,15 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { generateSectorComplianceChecklist } from "@/utils/downloadUtils";
+import { saveChecklistItems, getChecklistItems } from "@/lib/supabase";
 
 // Types
 interface ChecklistItem {
   id: string;
+  item_id?: string;
   title: string;
   description: string;
   completed: boolean;
@@ -22,6 +23,7 @@ interface ChecklistItem {
   deadline?: string;
   formUrl?: string;
   resources?: { title: string; url: string }[];
+  user_id?: string;
 }
 
 interface BusinessChecklistProps {
@@ -412,7 +414,6 @@ const sectorBasedChecklists: Record<string, ChecklistItem[]> = {
       ]
     }
   ],
-  // Add more sectors as needed
   "default": [] // Empty default list
 };
 
@@ -421,44 +422,60 @@ const BusinessChecklist = ({ onProgressChange }: BusinessChecklistProps) => {
   const [selectedItem, setSelectedItem] = useState<ChecklistItem | null>(null);
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [progress, setProgress] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
 
-  // Get user profile data from local storage or use defaults
   useEffect(() => {
-    const storedProfile = localStorage.getItem("userProfile");
-    const userProfile = storedProfile ? JSON.parse(storedProfile) : {
-      sector: "technology",
-      businessType: "pvt_ltd"
+    const loadChecklistData = async () => {
+      setIsLoading(true);
+      try {
+        const storedProfile = localStorage.getItem("userProfile");
+        const userProfile = storedProfile ? JSON.parse(storedProfile) : {
+          sector: "technology",
+          businessType: "pvt_ltd"
+        };
+        
+        const sectorMap: Record<string, string> = {
+          "technology": "technology",
+          "ecommerce": "ecommerce", 
+          "food": "food",
+        };
+        
+        const sectorKey = sectorMap[userProfile.sector?.toLowerCase()] || "technology";
+        const sectorChecklistItems = sectorBasedChecklists[sectorKey] || sectorBasedChecklists["default"];
+        
+        const storedItems = await getChecklistItems();
+        
+        if (storedItems && storedItems.length > 0) {
+          const mergedItems = sectorChecklistItems.map(item => {
+            const storedItem = storedItems.find((stored: ChecklistItem) => 
+              stored.id === item.id || stored.item_id === item.id
+            );
+            return storedItem ? { ...item, completed: storedItem.completed } : item;
+          });
+          setChecklistItems(mergedItems);
+        } else {
+          const itemsWithItemId = sectorChecklistItems.map(item => ({
+            ...item,
+            item_id: item.id
+          }));
+          setChecklistItems(itemsWithItemId);
+        }
+      } catch (error) {
+        console.error("Error loading checklist data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load checklist data",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
     };
     
-    // Map sector from onboarding form to the checklist keys
-    const sectorMap: Record<string, string> = {
-      "technology": "technology",
-      "ecommerce": "ecommerce", 
-      "food": "food",
-      // Add more mappings as needed
-    };
-    
-    const sectorKey = sectorMap[userProfile.sector?.toLowerCase()] || "technology";
-    const sectorChecklistItems = sectorBasedChecklists[sectorKey] || sectorBasedChecklists["default"];
-    
-    // Load stored checklist completion status if it exists
-    const storedChecklist = localStorage.getItem("userChecklist");
-    
-    if (storedChecklist) {
-      const parsedChecklist = JSON.parse(storedChecklist);
-      // Merge the stored completion status with the sector-specific items
-      const mergedItems = sectorChecklistItems.map(item => {
-        const storedItem = parsedChecklist.find((stored: ChecklistItem) => stored.id === item.id);
-        return storedItem ? { ...item, completed: storedItem.completed } : item;
-      });
-      setChecklistItems(mergedItems);
-    } else {
-      setChecklistItems(sectorChecklistItems);
-    }
+    loadChecklistData();
   }, []);
 
-  // Calculate progress whenever checklist changes
   useEffect(() => {
     const completedCount = checklistItems.filter(item => item.completed).length;
     const totalCount = checklistItems.length;
@@ -466,57 +483,70 @@ const BusinessChecklist = ({ onProgressChange }: BusinessChecklistProps) => {
     
     setProgress(progressValue);
     
-    // Call the parent's callback if provided
     if (onProgressChange) {
       onProgressChange(progressValue);
     }
     
-    // Save checklist status to localStorage
     localStorage.setItem("userChecklist", JSON.stringify(checklistItems));
   }, [checklistItems, onProgressChange]);
 
-  // Toggle completion status of an item
-  const toggleItemCompletion = (id: string) => {
-    setChecklistItems(prev => 
-      prev.map(item => 
+  const toggleItemCompletion = async (id: string) => {
+    try {
+      const updatedItems = checklistItems.map(item => 
         item.id === id 
-          ? { ...item, completed: !item.completed } 
+          ? { ...item, completed: !item.completed, item_id: item.id } 
           : item
-      )
-    );
-    
-    const item = checklistItems.find(item => item.id === id);
-    
-    if (item) {
-      toast(
-        item.completed ? "Task marked as incomplete" : "Task completed!",
-        {
-          description: item.title
-        }
       );
+      
+      setChecklistItems(updatedItems);
+      
+      await saveChecklistItems(updatedItems);
+      
+      const item = checklistItems.find(item => item.id === id);
+      
+      if (item) {
+        toast({
+          title: item.completed ? "Task marked as incomplete" : "Task completed!",
+          description: item.title
+        });
+      }
+    } catch (error) {
+      console.error("Error saving checklist status:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save your changes",
+        variant: "destructive",
+      });
     }
   };
   
-  // Download sector-specific checklist
   const handleDownloadChecklist = () => {
     const storedProfile = localStorage.getItem("userProfile");
     const userProfile = storedProfile ? JSON.parse(storedProfile) : {};
     
     try {
-      generateSectorComplianceChecklist(userProfile);
-      toast.success("Checklist downloaded successfully!");
+      if (generateSectorComplianceChecklist(userProfile)) {
+        toast({
+          title: "Success",
+          description: "Checklist downloaded successfully!"
+        });
+      } else {
+        throw new Error("Failed to generate checklist");
+      }
     } catch (error) {
       console.error("Error downloading checklist:", error);
-      toast.error("Failed to download checklist");
+      toast({
+        title: "Error",
+        description: "Failed to download checklist",
+        variant: "destructive",
+      });
     }
   };
 
-  // Filter checklist by category
   const filteredItems = filterCategory === "all" 
     ? checklistItems 
     : checklistItems.filter(item => item.category.toLowerCase() === filterCategory.toLowerCase());
 
-  // Group by category
   const groupedItems = filteredItems.reduce((acc, item) => {
     const category = acc[item.category] || [];
     category.push(item);
@@ -524,8 +554,20 @@ const BusinessChecklist = ({ onProgressChange }: BusinessChecklistProps) => {
     return acc;
   }, {} as Record<string, ChecklistItem[]>);
 
-  // Get all unique categories
   const categories = ["all", ...new Set(checklistItems.map(item => item.category))];
+
+  if (isLoading) {
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Startup Checklist</CardTitle>
+        </CardHeader>
+        <CardContent className="flex justify-center items-center h-64">
+          <div>Loading checklist...</div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full">
