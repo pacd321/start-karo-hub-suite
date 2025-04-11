@@ -63,21 +63,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Check if user has a profile to determine if they're onboarded
       if (currentSession?.user) {
-        // Fix for the Promise.catch() TypeScript error
-        supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', currentSession.user.id)
-          .single()
-          .then(({ data }) => {
+        // Fix Promise chain handling to avoid TypeScript error
+        const fetchProfile = async () => {
+          try {
+            const { data } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', currentSession.user.id)
+              .single();
+            
             setIsOnboarded(!!data);
-            setIsLoading(false);
-          })
-          .catch(() => {
-            // Handle the error explicitly in this promise chain
+          } catch (error) {
             setIsOnboarded(false);
+          } finally {
             setIsLoading(false);
-          });
+          }
+        };
+        
+        fetchProfile();
       } else {
         setIsLoading(false);
       }
