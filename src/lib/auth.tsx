@@ -31,10 +31,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isOnboarded, setIsOnboarded] = useState(false);
 
+  const checkIsOnboarded = async (userId: string) => {
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      return !!data;
+    } catch (error) {
+      console.error("Error checking onboarded status:", error);
+      return false;
+    }
+  };
+
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, newSession) => {
+      async (_event, newSession) => {
         setSession(newSession);
         if (newSession?.user) {
           const extendedUser = { 
@@ -42,49 +57,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             name: newSession.user.user_metadata?.name || 'User'  // Add name from metadata
           };
           setUser(extendedUser as ExtendedUser);
+          
+          // Check onboarded status
+          const onboarded = await checkIsOnboarded(newSession.user.id);
+          setIsOnboarded(onboarded);
         } else {
           setUser(null);
+          setIsOnboarded(false);
         }
       }
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-      setSession(currentSession);
-      if (currentSession?.user) {
-        const extendedUser = { 
-          ...currentSession.user,
-          name: currentSession.user.user_metadata?.name || 'User'  // Add name from metadata
-        };
-        setUser(extendedUser as ExtendedUser);
-      } else {
-        setUser(null);
-      }
-
-      // Check if user has a profile to determine if they're onboarded
-      if (currentSession?.user) {
-        // Fix Promise chain handling to avoid TypeScript error
-        const fetchProfile = async () => {
-          try {
-            const { data } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', currentSession.user.id)
-              .single();
-            
-            setIsOnboarded(!!data);
-          } catch (error) {
-            setIsOnboarded(false);
-          } finally {
-            setIsLoading(false);
-          }
-        };
+    const initAuth = async () => {
+      try {
+        setIsLoading(true);
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
         
-        fetchProfile();
-      } else {
+        setSession(currentSession);
+        if (currentSession?.user) {
+          const extendedUser = { 
+            ...currentSession.user,
+            name: currentSession.user.user_metadata?.name || 'User'
+          };
+          setUser(extendedUser as ExtendedUser);
+          
+          // Check onboarded status
+          const onboarded = await checkIsOnboarded(currentSession.user.id);
+          setIsOnboarded(onboarded);
+        } else {
+          setUser(null);
+          setIsOnboarded(false);
+        }
+      } catch (error) {
+        console.error("Auth initialization error:", error);
+      } finally {
         setIsLoading(false);
       }
-    });
+    };
+    
+    initAuth();
     
     return () => {
       subscription.unsubscribe();

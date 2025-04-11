@@ -1,22 +1,23 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export const saveUserProfile = async (profile: any) => {
-  const { data: user } = await supabase.auth.getUser();
+  const { data: userResponse } = await supabase.auth.getUser();
   
-  if (!user?.user?.id) {
+  if (!userResponse?.user?.id) {
     throw new Error('User not authenticated');
   }
+  
+  const userId = userResponse.user.id;
   
   // First, check if the profile exists
   const { data: existingProfile } = await supabase
     .from('profiles')
     .select('*')
-    .eq('id', user.user.id)
+    .eq('id', userId)
     .single();
   
   const profileData = {
-    id: user.user.id,
+    id: userId,
     company_name: profile.companyName,
     incorporation_date: profile.incorporationDate,
     registration_state: profile.registrationState,
@@ -34,7 +35,7 @@ export const saveUserProfile = async (profile: any) => {
     const result = await supabase
       .from('profiles')
       .update(profileData)
-      .eq('id', user.user.id);
+      .eq('id', userId);
       
     error = result.error;
   } else {
@@ -48,13 +49,12 @@ export const saveUserProfile = async (profile: any) => {
   
   if (error) {
     console.error('Error saving user profile:', error);
-    // Also save to localStorage as backup
-    localStorage.setItem('userProfile', JSON.stringify(profile));
     throw error;
   }
   
   // Also save to localStorage for non-authenticated states
   localStorage.setItem('userProfile', JSON.stringify(profile));
+  localStorage.setItem('isOnboarded', 'true'); // Add fallback flag
   
   return true;
 };

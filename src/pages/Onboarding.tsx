@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -7,35 +6,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
+import { saveUserProfile } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth";
 
 const sectorOptions = [
   { value: "technology", label: "Technology" },
@@ -110,7 +90,6 @@ const registrationStateOptions = [
   { value: "west_bengal", label: "West Bengal" },
 ];
 
-// Define the steps of the onboarding process
 const steps = [
   {
     id: "company-info",
@@ -139,32 +118,26 @@ const steps = [
   },
 ];
 
-// Create Zod schema for form validation
 const formSchema = z.object({
-  // Company Information
   companyName: z.string().min(2, "Company name is required"),
   sector: z.string({ required_error: "Please select a sector" }),
   businessType: z.string({ required_error: "Please select a business type" }),
   stage: z.string({ required_error: "Please select your startup stage" }),
   
-  // Registration Details
   incorporationDate: z.string().optional(),
   registrationState: z.string().optional(),
   pan: z.string().optional(),
   gstin: z.string().optional(),
   cinOrLlpin: z.string().optional(),
   
-  // Business Details
   annualTurnover: z.string().optional(),
   employeeCount: z.string().optional(),
   businessDescription: z.string().optional(),
   
-  // Founder Information
   founderName: z.string().min(2, "Founder name is required"),
   founderEmail: z.string().email("Please enter a valid email"),
   founderPhone: z.string().optional(),
   
-  // Compliance Status
   hasTaxFiling: z.boolean().optional(),
   hasGstRegistration: z.boolean().optional(),
   hasTrademark: z.boolean().optional(),
@@ -178,6 +151,7 @@ const OnboardingPage = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuth();
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -205,32 +179,46 @@ const OnboardingPage = () => {
     },
   });
   
-  // Check if the current step is valid
   const checkStepValidity = async () => {
     const currentFields = steps[currentStep].fields;
     const result = await form.trigger(currentFields as any);
     return result;
   };
   
-  const onSubmit = (data: FormValues) => {
+  const onSubmit = async (data: FormValues) => {
     setIsLoading(true);
     
-    // In a real app, this would save to a database via an API
-    // For demo purposes, we'll save to localStorage
-    localStorage.setItem("onboardingData", JSON.stringify(data));
-    localStorage.setItem("isOnboarded", "true");
-    
-    // Show success message
-    toast({
-      title: "Onboarding Complete",
-      description: "Your startup profile has been saved successfully.",
-    });
-    
-    // Redirect to dashboard
-    setTimeout(() => {
+    try {
+      const profileData = {
+        companyName: data.companyName,
+        incorporationDate: data.incorporationDate || null,
+        registrationState: data.registrationState || null,
+        annualTurnover: data.annualTurnover || null,
+        employeeCount: data.employeeCount || null,
+        sector: data.sector,
+        businessType: data.businessType
+      };
+      
+      await saveUserProfile(profileData);
+      
+      toast({
+        title: "Onboarding Complete",
+        description: "Your startup profile has been saved successfully.",
+      });
+      
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 1000);
+    } catch (error) {
+      console.error("Failed to save profile:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save your profile. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-      navigate("/dashboard");
-    }, 1500);
+    }
   };
   
   const nextStep = async () => {
@@ -251,10 +239,8 @@ const OnboardingPage = () => {
     }
   };
   
-  // Progress calculation
   const progress = ((currentStep + 1) / steps.length) * 100;
   
-  // Current step fields
   const currentStepFields = steps[currentStep].fields;
 
   return (
@@ -292,7 +278,6 @@ const OnboardingPage = () => {
           <CardContent>
             <Form {...form}>
               <form className="space-y-4">
-                {/* Company Information Fields */}
                 {currentStep === 0 && (
                   <>
                     <FormField
@@ -404,7 +389,6 @@ const OnboardingPage = () => {
                   </>
                 )}
                 
-                {/* Registration Details Fields */}
                 {currentStep === 1 && (
                   <>
                     <FormField
@@ -508,7 +492,6 @@ const OnboardingPage = () => {
                   </>
                 )}
                 
-                {/* Business Details Fields */}
                 {currentStep === 2 && (
                   <>
                     <FormField
@@ -593,7 +576,6 @@ const OnboardingPage = () => {
                   </>
                 )}
                 
-                {/* Founder Information Fields */}
                 {currentStep === 3 && (
                   <>
                     <FormField
@@ -643,7 +625,6 @@ const OnboardingPage = () => {
                   </>
                 )}
                 
-                {/* Compliance Status Fields */}
                 {currentStep === 4 && (
                   <div className="space-y-6">
                     <FormField
