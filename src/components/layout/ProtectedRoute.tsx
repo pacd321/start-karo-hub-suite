@@ -14,9 +14,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requireAdmin = false,
   requireOnboarding = true,
 }) => {
-  const { isAuthenticated, isAdmin, isOnboarded, loading } = useAuth();
+  const { isAuthenticated, isAdmin, isOnboarded, isLoading } = useAuth();
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary" />

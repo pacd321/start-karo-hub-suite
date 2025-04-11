@@ -1,9 +1,7 @@
-
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import KnowledgeUpload from "@/components/knowledge-base/KnowledgeUpload";
 import SectorKnowledgeBase from "@/components/knowledge-base/SectorKnowledgeBase";
 import HeaderComponent from "@/components/layout/Header";
@@ -32,8 +30,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
 import { getKnowledgeDocuments } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 
 const KnowledgeBase = () => {
   const [activeTab, setActiveTab] = useState("my-documents");
@@ -58,14 +56,14 @@ const KnowledgeBase = () => {
       
       // If admin, also get admin documents
       if (isAdmin) {
-        const { data, error } = await supabase
+        const { data: adminData, error } = await supabase
           .from('knowledge_documents')
           .select('*')
           .eq('is_admin_document', true)
           .order('created_at', { ascending: false });
           
-        if (!error && data) {
-          adminDocs = data;
+        if (!error && adminData) {
+          adminDocs = adminData;
         }
       }
       

@@ -16,11 +16,11 @@ import { useAuth } from "@/lib/auth";
 
 const HeaderComponent = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user, signOut } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    logout();
+    signOut();
     navigate("/login");
   };
 
@@ -53,7 +53,7 @@ const HeaderComponent = () => {
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-2">
                   <User className="h-4 w-4" />
-                  <span>{user?.name || "User"}</span>
+                  <span>{user?.user_metadata?.name || user?.email || "User"}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
@@ -111,7 +111,7 @@ const HeaderComponent = () => {
                 <Link to="/chatbot" className="text-sm font-medium hover:text-primary transition-colors py-1" onClick={() => setIsOpen(false)}>AI Assistant</Link>
                 <hr className="my-2" />
                 <div className="flex justify-between">
-                  <span className="text-sm font-medium">{user?.name || "User"}</span>
+                  <span className="text-sm font-medium">{user?.user_metadata?.name || user?.email || "User"}</span>
                   <Button variant="outline" size="sm" onClick={handleLogout}>Logout</Button>
                 </div>
               </>

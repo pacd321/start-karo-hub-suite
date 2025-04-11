@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import HeaderComponent from "@/components/layout/Header";
@@ -23,7 +22,7 @@ const Login = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<string>("login");
   const [showPassword, setShowPassword] = useState<boolean>(false);
-  const { login, signup, isAuthenticated } = useAuth();
+  const { signIn, signUp, isAuthenticated } = useAuth();
   
   const [loginForm, setLoginForm] = useState({
     email: "",
@@ -63,7 +62,20 @@ const Login = () => {
       return;
     }
     
-    await login(loginForm.email, loginForm.password);
+    const { error } = await signIn(loginForm.email, loginForm.password);
+    if (error) {
+      toast({
+        title: "Login Failed",
+        description: error.message || "Invalid credentials",
+        variant: "destructive"
+      });
+    } else {
+      toast({
+        title: "Login Successful",
+        description: "Welcome back!"
+      });
+      navigate("/dashboard");
+    }
   };
 
   const handleSignupSubmit = async (e: React.FormEvent) => {
@@ -88,7 +100,20 @@ const Login = () => {
       return;
     }
     
-    await signup(signupForm.name, signupForm.email, signupForm.password);
+    const { error } = await signUp(signupForm.email, signupForm.password);
+    if (error) {
+      toast({
+        title: "Signup Failed",
+        description: error.message || "Could not create account",
+        variant: "destructive"
+      });
+    } else {
+      toast({
+        title: "Signup Successful",
+        description: "Your account has been created. Please check your email for verification."
+      });
+      setActiveTab("login");
+    }
   };
   
   return (

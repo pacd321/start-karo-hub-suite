@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -41,7 +40,6 @@ const Dashboard = () => {
   const [progressValue, setProgressValue] = useState(30);
   const { user } = useAuth();
   
-  // Get user profile data from local storage or use defaults
   const storedProfile = localStorage.getItem("userProfile");
   const userProfile = storedProfile ? JSON.parse(storedProfile) : {
     companyName: "TechVentures Pvt Ltd",
@@ -64,10 +62,9 @@ const Dashboard = () => {
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back, {user?.name || "User"}</p>
+          <p className="text-muted-foreground">Welcome back, {user?.user_metadata?.name || user?.email || "User"}</p>
         </div>
 
-        {/* Progress Overview */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card>
             <CardHeader className="pb-2">
@@ -134,7 +131,6 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Main Dashboard Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             <BusinessChecklist onProgressChange={handleProgressChange} />

@@ -222,7 +222,7 @@ export const getKnowledgeDocuments = async (includeAdminDocs = false) => {
   
   let query = supabase
     .from('knowledge_documents')
-    .select('*')
+    .select('*');
     
   if (includeAdminDocs) {
     query = query.or(`user_id.eq.${user.user.id},is_admin_document.eq.true`);
