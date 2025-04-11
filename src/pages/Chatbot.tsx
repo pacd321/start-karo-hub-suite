@@ -2,10 +2,21 @@
 import ChatInterface from "@/components/chatbot/ChatInterface";
 import HeaderComponent from "@/components/layout/Header";
 import FooterComponent from "@/components/layout/Footer";
+import { useEffect, useRef } from "react";
 
 const Chatbot = () => {
+  // Ref to scroll to top on mount
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to top when component mounts
+  useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.scrollTop = 0;
+    }
+  }, []);
+
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen" ref={containerRef}>
       <HeaderComponent />
       
       <main className="flex-1 bg-gray-50">

@@ -1,6 +1,6 @@
 
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 /**
  * Utility functions for generating and downloading reports
@@ -41,7 +41,8 @@ export const generateComplianceReport = (userData: any) => {
     ["Shop & Establishment Registration", userData.hasShopEstablishment ? "Completed" : "Pending", "Before business commencement"]
   ];
   
-  (doc as any).autoTable({
+  // Use autoTable as a function, not a method
+  autoTable(doc, {
     startY: 80,
     head: [complianceData[0]],
     body: complianceData.slice(1),
@@ -58,6 +59,7 @@ export const generateComplianceReport = (userData: any) => {
     "Maintain proper documentation for all registrations"
   ];
   
+  // Use doc.autoTable.previous for getting the final Y position
   let recommendationY = (doc as any).lastAutoTable.finalY + 20;
   doc.setFontSize(14);
   doc.text("Recommendations", 20, recommendationY);
@@ -104,7 +106,8 @@ export const generateTaxReport = (taxData: any) => {
     ["Estimated Tax", taxData.estimatedTax?.toLocaleString() || "0"]
   ];
   
-  (doc as any).autoTable({
+  // Use autoTable as a function, not a method
+  autoTable(doc, {
     startY: 55,
     head: [taxDetails[0]],
     body: taxDetails.slice(1),
@@ -121,6 +124,7 @@ export const generateTaxReport = (taxData: any) => {
     "Consider angel tax exemption under section 56(2)(viib)"
   ];
   
+  // Use doc.autoTable.previous for getting the final Y position
   let suggestionY = (doc as any).lastAutoTable.finalY + 20;
   doc.setFontSize(14);
   doc.text("Tax Saving Suggestions", 20, suggestionY);
@@ -248,6 +252,96 @@ export const downloadBusinessPlanTemplate = () => {
   
   // Save the PDF
   doc.save(`business-plan-template-${new Date().toLocaleDateString()}.pdf`);
+  
+  return true;
+};
+
+/**
+ * Generate sector-specific compliance checklist PDF
+ */
+export const generateSectorComplianceChecklist = (userData: any) => {
+  // Create a new PDF document
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.width;
+  
+  // Add title
+  doc.setFontSize(20);
+  doc.setTextColor(33, 37, 41);
+  const sector = userData.sector || "Technology";
+  doc.text(`${sector} Sector Compliance Checklist`, pageWidth / 2, 20, { align: 'center' });
+  
+  // Add company details
+  doc.setFontSize(12);
+  doc.text(`Generated for: ${userData.companyName || "Your Company"}`, 20, 30);
+  doc.text(`Business Type: ${userData.businessType || "Private Limited Company"}`, 20, 35);
+  doc.text(`State: ${userData.registrationState || "Karnataka"}`, 20, 40);
+  doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, 45);
+  
+  // Define sector-specific compliances
+  const compliancesBySector: Record<string, Array<{name: string, description: string, deadline: string, link: string}>> = {
+    "Technology": [
+      {name: "GST Registration", description: "Mandatory for businesses with turnover above ₹20 lakhs", deadline: "Before starting operations", link: "https://www.gst.gov.in/"},
+      {name: "Shop & Establishment Act", description: "Registration under local municipal corporation", deadline: "Within 30 days of starting business", link: "https://shramsuvidha.gov.in/"},
+      {name: "Professional Tax", description: "Registration and payment for employees", deadline: "Monthly/Quarterly as applicable", link: "https://www.gst.gov.in/"},
+      {name: "Trademark Registration", description: "Protection for company name and logo", deadline: "As early as possible", link: "https://ipindia.gov.in/"},
+      {name: "MSME Registration", description: "Benefits for small and medium enterprises", deadline: "Optional but recommended", link: "https://udyamregistration.gov.in/"},
+      {name: "IT Act Compliance", description: "Privacy policy, terms of service for websites/apps", deadline: "Before launch", link: "#"},
+      {name: "Labour Laws Compliance", description: "If hiring employees (PF, ESI, etc.)", deadline: "Before hiring", link: "https://www.epfindia.gov.in/"},
+    ],
+    "Food": [
+      {name: "FSSAI License", description: "Food Safety and Standards Authority of India license", deadline: "Before starting operations", link: "https://foscos.fssai.gov.in/"},
+      {name: "GST Registration", description: "Mandatory for businesses with turnover above ₹20 lakhs", deadline: "Before starting operations", link: "https://www.gst.gov.in/"},
+      {name: "Health Trade License", description: "From local municipal corporation", deadline: "Before starting operations", link: "#"},
+      {name: "Fire Safety License", description: "For restaurant premises", deadline: "Before starting operations", link: "#"},
+      {name: "Eating House License", description: "From police department", deadline: "Before starting operations", link: "#"},
+      {name: "Weights & Measures License", description: "If using weighing equipment", deadline: "Before starting operations", link: "#"},
+      {name: "Liquor License", description: "If serving alcohol", deadline: "Before serving alcohol", link: "#"},
+    ],
+    // Add other sectors here
+  };
+  
+  // Get compliances for user's sector or default to Technology
+  const compliances = compliancesBySector[sector] || compliancesBySector["Technology"];
+  
+  // Create compliance table
+  const tableData = [["Compliance", "Description", "Deadline"]];
+  compliances.forEach(item => {
+    tableData.push([item.name, item.description, item.deadline]);
+  });
+  
+  // Add table to PDF
+  autoTable(doc, {
+    startY: 55,
+    head: [tableData[0]],
+    body: tableData.slice(1),
+    theme: 'grid',
+    headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+    alternateRowStyles: { fillColor: [240, 240, 240] },
+    columnStyles: {
+      0: { cellWidth: 50 },
+      1: { cellWidth: 80 },
+      2: { cellWidth: 40 }
+    }
+  });
+  
+  // Add links section
+  let linksY = (doc as any).lastAutoTable.finalY + 20;
+  doc.setFontSize(14);
+  doc.text("Useful Links", 20, linksY);
+  
+  linksY += 10;
+  doc.setFontSize(10);
+  
+  compliances.forEach((compliance, index) => {
+    doc.text(`• ${compliance.name}: `, 25, linksY + (index * 7));
+    doc.setTextColor(0, 0, 255);
+    const textWidth = doc.getTextWidth(`• ${compliance.name}: `);
+    doc.text(compliance.link, 25 + textWidth, linksY + (index * 7));
+    doc.setTextColor(33, 37, 41); // Reset text color
+  });
+  
+  // Save the PDF
+  doc.save(`${sector.toLowerCase()}-sector-compliance-checklist.pdf`);
   
   return true;
 };

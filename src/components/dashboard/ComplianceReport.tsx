@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,25 +29,66 @@ const businessTypeCompliance: SectorComplianceMap = {
   "One Person Company": ["Certificate of Incorporation", "PAN & TAN", "GST Registration", "MSME Registration", "Annual Filing (MGT-7, AOC-4)"]
 };
 
+// Map from form values to display values
+const sectorMapping: {[key: string]: string} = {
+  "technology": "Technology",
+  "food": "Food",
+  "ecommerce": "E-commerce",
+  "healthcare": "Healthcare",
+  "entertainment": "Entertainment",
+  "manufacturing": "Manufacturing"
+};
+
+const businessTypeMapping: {[key: string]: string} = {
+  "sole_proprietorship": "Sole Proprietorship",
+  "partnership": "Partnership",
+  "llp": "LLP",
+  "pvt_ltd": "Private Limited Company",
+  "public_ltd": "Public Limited Company",
+  "one_person": "One Person Company"
+};
+
 interface ComplianceReportProps {
-  sectorType: string;
-  businessType: string;
-  userProfile: any;
+  sectorType?: string;
+  businessType?: string;
+  userProfile?: any;
 }
 
 const ComplianceReport: React.FC<ComplianceReportProps> = ({ 
-  sectorType = "Technology",
-  businessType = "Private Limited Company",
-  userProfile = {}
+  sectorType,
+  businessType,
+  userProfile: propUserProfile
 }) => {
   const [downloading, setDownloading] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>({});
+
+  // Load user profile from localStorage or props
+  useEffect(() => {
+    if (propUserProfile && Object.keys(propUserProfile).length > 0) {
+      setUserProfile(propUserProfile);
+    } else {
+      const storedProfile = localStorage.getItem("userProfile");
+      if (storedProfile) {
+        setUserProfile(JSON.parse(storedProfile));
+      } else {
+        // Default profile
+        setUserProfile({
+          companyName: "Your Company",
+          sector: "technology",
+          businessType: "pvt_ltd",
+          registrationState: "Karnataka",
+          annualTurnover: "under_40l"
+        });
+      }
+    }
+  }, [propUserProfile]);
 
   // Get the appropriate compliance requirements
-  const sector = sectorType || "Technology";
-  const businessEntity = businessType || "Private Limited Company";
+  const mappedSector = sectorMapping[userProfile.sector] || sectorMapping["technology"] || "Technology";
+  const mappedBusinessType = businessTypeMapping[userProfile.businessType] || businessTypeMapping["pvt_ltd"] || "Private Limited Company";
   
-  const sectorRequirements = sectorCompliance[sector] || sectorCompliance["Technology"];
-  const businessRequirements = businessTypeCompliance[businessEntity] || businessTypeCompliance["Private Limited Company"];
+  const sectorRequirements = sectorCompliance[mappedSector] || sectorCompliance["Technology"];
+  const businessRequirements = businessTypeCompliance[mappedBusinessType] || businessTypeCompliance["Private Limited Company"];
   
   // All combined compliance requirements
   const allRequirements = [...businessRequirements, ...sectorRequirements];
@@ -56,19 +97,50 @@ const ComplianceReport: React.FC<ComplianceReportProps> = ({
   const handleDownload = () => {
     setDownloading(true);
     
-    // Use the download utility with enriched user profile
-    const enrichedProfile = {
+    // Prepare enriched profile with compliance status flags
+    const storedChecklist = localStorage.getItem("userChecklist");
+    let complianceFlags: {[key: string]: boolean} = {};
+    
+    if (storedChecklist) {
+      const checklist = JSON.parse(storedChecklist);
+      // Extract status flags from checklist
+      checklist.forEach((item: any) => {
+        if (item.title === "GST Registration") complianceFlags.hasGstRegistration = item.completed;
+        if (item.title.includes("Tax")) complianceFlags.hasTaxFiling = item.completed;
+        if (item.title.includes("Trademark")) complianceFlags.hasTrademark = item.completed;
+        if (item.title.includes("Employment") || item.title.includes("Labour")) complianceFlags.hasLabourCompliances = item.completed;
+        if (item.title.includes("Shop & Establishment")) complianceFlags.hasShopEstablishment = item.completed;
+      });
+    } else {
+      // Random flags for demonstration if no checklist is available
+      complianceFlags = {
+        hasGstRegistration: Math.random() > 0.5,
+        hasTaxFiling: Math.random() > 0.5,
+        hasTrademark: Math.random() > 0.5,
+        hasLabourCompliances: Math.random() > 0.5,
+        hasShopEstablishment: Math.random() > 0.5,
+      };
+    }
+    
+    // Format turnover for display
+    const turnoverFormatMap: {[key: string]: string} = {
+      "under_40l": "Under ₹40 lakhs",
+      "40l_to_1cr": "₹40 lakhs to ₹1 crore",
+      "1cr_to_5cr": "₹1 crore to ₹5 crore",
+      "above_5cr": "Above ₹5 crore"
+    };
+    
+    // Create display-ready profile
+    const formattedProfile = {
       ...userProfile,
-      // Add compliance status flags
-      hasGstRegistration: Math.random() > 0.5,
-      hasTaxFiling: Math.random() > 0.5,
-      hasTrademark: Math.random() > 0.5,
-      hasLabourCompliances: Math.random() > 0.5,
-      hasShopEstablishment: Math.random() > 0.5,
+      sector: mappedSector,
+      businessType: mappedBusinessType,
+      annualTurnover: turnoverFormatMap[userProfile.annualTurnover] || userProfile.annualTurnover,
+      ...complianceFlags
     };
     
     try {
-      if (generateComplianceReport(enrichedProfile)) {
+      if (generateComplianceReport(formattedProfile)) {
         toast({
           title: "Report Downloaded",
           description: "Your compliance report has been downloaded successfully.",
@@ -97,7 +169,7 @@ const ComplianceReport: React.FC<ComplianceReportProps> = ({
       <CardHeader>
         <CardTitle>Compliance Report</CardTitle>
         <CardDescription>
-          Required compliances for your {businessEntity} in the {sector} sector
+          Required compliances for your {mappedBusinessType} in the {mappedSector} sector
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -116,19 +188,25 @@ const ComplianceReport: React.FC<ComplianceReportProps> = ({
           
           <div className="grid grid-cols-2 gap-2 text-sm pt-2 border-t">
             <div className="text-muted-foreground">Business Type:</div>
-            <div className="font-medium">{businessEntity}</div>
+            <div className="font-medium">{mappedBusinessType}</div>
             
             <div className="text-muted-foreground">Sector:</div>
-            <div className="font-medium">{sector}</div>
+            <div className="font-medium">{mappedSector}</div>
             
             <div className="text-muted-foreground">Location:</div>
             <div className="font-medium">{userProfile.registrationState || "Karnataka"}</div>
             
             <div className="text-muted-foreground">Turnover Range:</div>
-            <div className="font-medium">{userProfile.annualTurnover || "Under ₹40 lakhs"}</div>
+            <div className="font-medium">
+              {userProfile.annualTurnover === "under_40l" ? "Under ₹40 lakhs" :
+               userProfile.annualTurnover === "40l_to_1cr" ? "₹40 lakhs to ₹1 crore" :
+               userProfile.annualTurnover === "1cr_to_5cr" ? "₹1 crore to ₹5 crore" :
+               userProfile.annualTurnover === "above_5cr" ? "Above ₹5 crore" :
+               userProfile.annualTurnover || "Under ₹40 lakhs"}
+            </div>
             
             <div className="text-muted-foreground">Incorporation Date:</div>
-            <div className="font-medium">{userProfile.incorporationDate || "2023-06-15"}</div>
+            <div className="font-medium">{userProfile.incorporationDate || "Not specified"}</div>
           </div>
         </div>
       </CardContent>
