@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -84,11 +85,34 @@ export default {
 					to: {
 						height: '0'
 					}
-				}
+				},
+				float: {
+					'0%, 100%': { transform: 'translateY(0)' },
+					'50%': { transform: 'translateY(-10px)' },
+				},
+				pulse: {
+					'0%, 100%': { opacity: 1 },
+					'50%': { opacity: 0.7 },
+				},
+				bounce: {
+					'0%, 100%': { transform: 'translateY(0)' },
+					'50%': { transform: 'translateY(-15px)' },
+				},
+				morph: {
+					'0%': { borderRadius: '42% 58% 70% 30% / 45% 45% 55% 55%' },
+					'25%': { borderRadius: '58% 42% 75% 25% / 76% 46% 54% 24%' },
+					'50%': { borderRadius: '50% 50% 33% 67% / 55% 27% 73% 45%' },
+					'75%': { borderRadius: '33% 67% 58% 42% / 63% 68% 32% 37%' },
+					'100%': { borderRadius: '42% 58% 70% 30% / 45% 45% 55% 55%' },
+				},
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'float': 'float 4s ease-in-out infinite',
+				'pulse-slow': 'pulse 3s ease-in-out infinite',
+				'bounce-slow': 'bounce 3s ease-in-out infinite',
+				'morph': 'morph 8s ease-in-out infinite',
 			}
 		}
 	},
