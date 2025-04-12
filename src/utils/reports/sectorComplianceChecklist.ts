@@ -96,19 +96,34 @@ export const generateSectorComplianceChecklist = async (userData: any) => {
       margin: { left: 15, right: 15 },
     });
     
+    // Get the final Y position after the table
+    let finalY = (doc as any).lastAutoTable.finalY + 20;
+    
     // Filter checklist items by sector
-    const sectorItems = checklistItems.filter(item => 
-      item.category?.toLowerCase() === sector.toLowerCase() ||
-      item.title?.includes(sector)
-    );
+    let sectorItems = checklistItems;
+    
+    // If we have sector information, filter by it
+    if (sector) {
+      sectorItems = checklistItems.filter(item => 
+        item.category?.toLowerCase() === sector.toLowerCase() ||
+        item.title?.includes(sector)
+      );
+      
+      // If no items match the sector filter, use all items
+      if (sectorItems.length === 0) {
+        sectorItems = checklistItems;
+      }
+    }
     
     const completedItems = sectorItems.filter(item => item.completed);
     const pendingItems = sectorItems.filter(item => !item.completed);
     
-    // Get the final Y position after the table
-    let finalY = (doc as any).lastAutoTable.finalY + 20;
-    
     // Add Completed and Pending Items Tables
+    doc.setFontSize(16);
+    doc.text("Your Startup Checklist Progress", 20, finalY);
+    finalY += 10;
+    
+    // Add Completed and Pending Items Tables using the common utility
     finalY = addChecklistTables(doc, completedItems, pendingItems, finalY);
     
     // Add links section
