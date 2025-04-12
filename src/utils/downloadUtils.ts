@@ -1,6 +1,7 @@
+
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { getUserProfile } from '@/lib/supabase';
+import { getUserProfile, getChecklistItems } from '@/lib/supabase';
 
 /**
  * Utility functions for generating and downloading reports
@@ -19,6 +20,9 @@ export const generateComplianceReport = async (userData: any) => {
     if (!userData) {
       throw new Error('No user profile data available');
     }
+    
+    // Get checklist items to show completion status
+    const checklistItems = await getChecklistItems();
     
     // Create a new PDF document
     const doc = new jsPDF();
@@ -64,11 +68,86 @@ export const generateComplianceReport = async (userData: any) => {
       tableWidth: 'auto'
     });
     
+    // Separate completed and pending items from checklist
+    const completedItems = checklistItems.filter(item => item.completed);
+    const pendingItems = checklistItems.filter(item => !item.completed);
+    
+    // Get the final Y position after the table
+    let finalY = (doc as any).lastAutoTable.finalY + 20;
+    
+    // Add Completed Items Table
+    doc.setFontSize(14);
+    doc.text("Completed Compliance Items", 20, finalY);
+    
+    if (completedItems.length > 0) {
+      const completedData = [
+        ["Item", "Category", "Priority"]
+      ];
+      
+      completedItems.forEach(item => {
+        completedData.push([
+          item.title,
+          item.category || "General",
+          item.priority || "Medium"
+        ]);
+      });
+      
+      autoTable(doc, {
+        startY: finalY + 5,
+        head: [completedData[0]],
+        body: completedData.slice(1),
+        theme: 'grid',
+        headStyles: { fillColor: [46, 125, 50], textColor: 255 },
+        alternateRowStyles: { fillColor: [240, 255, 240] },
+        margin: { left: 20, right: 20 },
+        tableWidth: 'auto'
+      });
+      
+      finalY = (doc as any).lastAutoTable.finalY + 15;
+    } else {
+      doc.setFontSize(10);
+      doc.text("No completed compliance items found.", 25, finalY + 10);
+      finalY += 20;
+    }
+    
+    // Add Pending Items Table
+    doc.setFontSize(14);
+    doc.text("Pending Compliance Items", 20, finalY);
+    
+    if (pendingItems.length > 0) {
+      const pendingData = [
+        ["Item", "Category", "Priority"]
+      ];
+      
+      pendingItems.forEach(item => {
+        pendingData.push([
+          item.title,
+          item.category || "General",
+          item.priority || "Medium"
+        ]);
+      });
+      
+      autoTable(doc, {
+        startY: finalY + 5,
+        head: [pendingData[0]],
+        body: pendingData.slice(1),
+        theme: 'grid',
+        headStyles: { fillColor: [211, 47, 47], textColor: 255 },
+        alternateRowStyles: { fillColor: [255, 240, 240] },
+        margin: { left: 20, right: 20 },
+        tableWidth: 'auto'
+      });
+      
+      finalY = (doc as any).lastAutoTable.finalY + 15;
+    } else {
+      doc.setFontSize(10);
+      doc.text("No pending compliance items found.", 25, finalY + 10);
+      finalY += 20;
+    }
+    
     // Add recommendations
     const recommendations = getRecommendations(userData);
     
-    // Get the final Y position after the table
-    const finalY = (doc as any).lastAutoTable.finalY + 20;
     doc.setFontSize(14);
     doc.text("Recommendations", 20, finalY);
     
@@ -351,6 +430,9 @@ export const generateSectorComplianceChecklist = async (userData: any) => {
       throw new Error('No user profile data available');
     }
     
+    // Get checklist items to show completion status
+    const checklistItems = await getChecklistItems();
+    
     // Create a new PDF document
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
@@ -426,8 +508,89 @@ export const generateSectorComplianceChecklist = async (userData: any) => {
       margin: { left: 15, right: 15 },
     });
     
-    // Add links section - get the final Y position after the table
-    const finalY = (doc as any).lastAutoTable.finalY + 20;
+    // Filter checklist items by sector
+    const sectorItems = checklistItems.filter(item => 
+      item.category?.toLowerCase() === sector.toLowerCase() ||
+      item.title?.includes(sector)
+    );
+    
+    const completedItems = sectorItems.filter(item => item.completed);
+    const pendingItems = sectorItems.filter(item => !item.completed);
+    
+    // Get the final Y position after the table
+    let finalY = (doc as any).lastAutoTable.finalY + 20;
+    
+    // Add Completed Items Table
+    doc.setFontSize(14);
+    doc.text("Completed Compliance Items", 20, finalY);
+    
+    if (completedItems.length > 0) {
+      const completedData = [
+        ["Item", "Priority", "Description"]
+      ];
+      
+      completedItems.forEach(item => {
+        completedData.push([
+          item.title,
+          item.priority || "Medium",
+          (item.description || "").substring(0, 50) + ((item.description || "").length > 50 ? "..." : "")
+        ]);
+      });
+      
+      autoTable(doc, {
+        startY: finalY + 5,
+        head: [completedData[0]],
+        body: completedData.slice(1),
+        theme: 'grid',
+        headStyles: { fillColor: [46, 125, 50], textColor: 255 },
+        alternateRowStyles: { fillColor: [240, 255, 240] },
+        margin: { left: 20, right: 20 },
+        tableWidth: 'auto'
+      });
+      
+      finalY = (doc as any).lastAutoTable.finalY + 15;
+    } else {
+      doc.setFontSize(10);
+      doc.text("No completed compliance items found.", 25, finalY + 10);
+      finalY += 20;
+    }
+    
+    // Add Pending Items Table
+    doc.setFontSize(14);
+    doc.text("Pending Compliance Items", 20, finalY);
+    
+    if (pendingItems.length > 0) {
+      const pendingData = [
+        ["Item", "Priority", "Description"]
+      ];
+      
+      pendingItems.forEach(item => {
+        pendingData.push([
+          item.title,
+          item.priority || "Medium",
+          (item.description || "").substring(0, 50) + ((item.description || "").length > 50 ? "..." : "")
+        ]);
+      });
+      
+      autoTable(doc, {
+        startY: finalY + 5,
+        head: [pendingData[0]],
+        body: pendingData.slice(1),
+        theme: 'grid',
+        headStyles: { fillColor: [211, 47, 47], textColor: 255 },
+        alternateRowStyles: { fillColor: [255, 240, 240] },
+        margin: { left: 20, right: 20 },
+        tableWidth: 'auto'
+      });
+      
+      finalY = (doc as any).lastAutoTable.finalY + 15;
+    } else {
+      doc.setFontSize(10);
+      doc.text("No pending compliance items found.", 25, finalY + 10);
+      finalY += 20;
+    }
+    
+    // Add links section
     doc.setFontSize(14);
     doc.text("Useful Links", 20, finalY);
     
@@ -454,3 +617,4 @@ export const generateSectorComplianceChecklist = async (userData: any) => {
     return false;
   }
 };
+

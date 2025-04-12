@@ -126,6 +126,51 @@ export type Database = {
         }
         Relationships: []
       }
+      startup_profiles: {
+        Row: {
+          company_name: string
+          created_at: string | null
+          employee_count: number
+          funding_status: string
+          has_exports: boolean | null
+          id: string
+          location: string
+          sector: string
+          stage: string
+          structure: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          company_name: string
+          created_at?: string | null
+          employee_count: number
+          funding_status: string
+          has_exports?: boolean | null
+          id?: string
+          location: string
+          sector: string
+          stage: string
+          structure: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          company_name?: string
+          created_at?: string | null
+          employee_count?: number
+          funding_status?: string
+          has_exports?: boolean | null
+          id?: string
+          location?: string
+          sector?: string
+          stage?: string
+          structure?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
